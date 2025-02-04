@@ -2,7 +2,7 @@
 
 prepare_data <- function(sheet_name, marker_name) {
   df <-
-    read_excel("../ADDF results and master list_Jan 2025.xlsx",
+    read_excel(file.path(data_dir, "ADDF results and master list_Jan 2025.xlsx"),
       sheet = sheet_name,
       guess_max = 100000,
     )

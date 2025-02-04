@@ -7,11 +7,14 @@ library(lme4)
 library(performance)
 source("prepare_data_function.R")
 
+dotenv::load_dot_env()
+data_dir <- Sys.getenv("DATA_DIR")
+
 #### Read data ####
 
 ### Phenotype
 
-pheno <- read_excel("../ADDF phenotype_02222024.xlsx")
+pheno <- read_excel(file.path(data_dir, "ADDF phenotype_02222024.xlsx"))
 
 setnames(pheno, names(pheno), gsub(" ", "_", names(pheno)))
 
@@ -19,7 +22,7 @@ setnames(pheno, "PA_DB_UID", "PA_ID")
 
 ### match index to PA_ID
 
-ids <- read_excel("../GILIPIN_ADDFPlasma_Manifest_Lab_20231107.xlsx")
+ids <- read_excel(file.path(data_dir, "GILIPIN_ADDFPlasma_Manifest_Lab_20231107.xlsx"))
 
 ids <- ids |> filter(!is.na(`PA ID`))
 
@@ -34,7 +37,7 @@ setnames(ids, c(
 
 ### Case status
 
-case <- read_excel("../ID_ALL_CASES_COMBINED.xlsx")
+case <- read_excel(file.path("ID_ALL_CASES_COMBINED.xlsx"))
 
 setnames(case, names(case), gsub(" ", "_", names(case)))
 
@@ -49,7 +52,7 @@ setnames(
 # read sheet names
 
 marker_sheets <-
-  excel_sheets("../ADDF results and master list_Jan 2025.xlsx")
+  excel_sheets(file.path(data_dir, "ADDF results and master list_Jan 2025.xlsx"))
 
 ptau181 <- prepare_data(marker_sheets[2], "ptau181_")
 
@@ -535,10 +538,10 @@ joined <- full_join(joined, case, by = "PA_ID")
 ### Add in Texas case & demo data
 
 new_cases <-
-  read_excel("../Demographic data Texas/ADDF preliminary dataset Jan 2025.xlsx")
+  read_excel(file.path(data_dir, "Demographic data Texas/ADDF preliminary dataset Jan 2025.xlsx"))
 
 new_cases_update <-
-  read_excel("../Demographic data Texas/ADDF Jan 21 2025 update.xlsx")
+  read_excel(file.path(data_dir, "Demographic data Texas/ADDF Jan 21 2025 update.xlsx"))
 
 new_cases_update <-
   new_cases_update |>
@@ -589,4 +592,4 @@ joined$sex_combined <-
 
 #### Write to csv ####
 
-#write_csv(joined, "../merged_jan28_2025.csv")
+#write_csv(joined, file.path(data_dir, "merged_jan28_2025.csv"))

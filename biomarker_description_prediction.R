@@ -19,10 +19,16 @@ library(future.apply)
 library(parallel)
 library(logistf)
 library(rms)
+library(psych)
+library(bayesplot)
+library(knitr)
+
+dotenv::load_dot_env()
+data_dir <- Sys.getenv("DATA_DIR")
 
 # read data
 
-df <- read_csv("../merged_data/merged_all_vars_28_01_2024.csv")
+df <- read_csv(file.path(data_dir, "merged_data/merged_all_vars_28_01_2024.csv"))
 
 # Merge diagnosis variables between Texas and Washington data
 
@@ -97,7 +103,7 @@ df <- df |> select(-mean_elisa)
 
 # select relevant variables
 df <-
-  df |> select(Diagnosis_combined, age_combined, female, starts_with("mean_"))
+  df |> select(Diagnosis_combined, age_combined, female, starts_with("mean_"), Site, race_combined, ends_with("_ICC"))
 
 ## Truncate biomarkers at the 99th percentile
 
@@ -137,7 +143,7 @@ df |>
     names_prefix = "mean_"
   ) |>
   mutate(biomarker = fct_recode(biomarker,
-    "AB40" = "ab40", "AB42" = "ab42","GFAP" = "gfap",
+    "AB40" = "ab40", "AB42" = "ab42", "GFAP" = "gfap",
     "log(NfL)" = "nfl", "pTau181" = "ptau181", "pTau217" = "ptau217",
     "log(TDP-43)" = "tdp", "log(YKL-40)" = "ykl",
     "AB42/AB40" = "ab42_ab40_ratio"
@@ -151,10 +157,10 @@ df |>
   theme(legend.position = "bottom")
 
 
-ggsave("plots/conc_by_status.png",
-  device = "png",
-  width = 10, height = 10, bg = "white"
-)
+# ggsave("plots/conc_by_status.png",
+#   device = "png",
+#   width = 10, height = 10, bg = "white"
+# )
 
 # table
 
@@ -187,7 +193,7 @@ df |>
   )) |>
   mutate(value = round(value, 3)) |>
   group_by(biomarker) |>
-  summarise(ICC = mean(value, na.rm = T)) |>
+  summarise(ICC = mean(value, na.rm = TRUE)) |>
   knitr::kable()
 
 
@@ -200,6 +206,10 @@ df <- df |> select(-mean_ab42_ab40_ratio)
 # remove controls
 
 df <- df |> filter(!Diagnosis_combined == "Control")
+
+# remove extras
+
+df <- df |> select(-Site, -race_combined, -ends_with("_ICC"))
 
 ### ROC curves ###
 # AD vs others
@@ -237,7 +247,8 @@ vimp_out <- future_lapply(
 )
 
 preds <- df |>
-  select(age_combined, female, starts_with("mean_")) |> names()
+  select(age_combined, female, starts_with("mean_")) |>
+  names()
 
 # AD
 knitr::kable(
@@ -278,9 +289,9 @@ knitr::kable(
 
 ### VIMP by hand ###
 
-compare_auc <- function(data, outcome, reference, removed_var, full_auc){
+compare_auc <- function(data, outcome, reference, removed_var, full_auc) {
   var_name <- names(data)[removed_var]
-  data <- data[,-removed_var]
+  data <- data[, -removed_var]
   auc_out <- mean(auroc(data, outcome, reference)$AUC)
   return(tibble(var = var_name, auc = auc_out, dif = full_auc - auc))
 }
@@ -296,7 +307,8 @@ compare_out_ad <-
     full_auc = mean(roc_ad$AUC)
   )
 
-bind_rows(compare_out_ad) |> mutate(dif = ifelse(dif < 0, 0, dif)) |>
+bind_rows(compare_out_ad) |>
+  mutate(dif = ifelse(dif < 0, 0, dif)) |>
   arrange(desc(dif))
 
 
@@ -310,7 +322,8 @@ compare_out_ft <-
       reference = c("Alzheimer's", "Lewy bodies"),
       full_auc = mean(roc_ft$AUC))
 
-bind_rows(compare_out_ft) |> mutate(dif = ifelse(dif < 0, 0, dif)) |>
+bind_rows(compare_out_ft) |>
+  mutate(dif = ifelse(dif < 0, 0, dif)) |>
   arrange(desc(dif))
 
 
@@ -324,5 +337,6 @@ compare_out_lb <-
       reference = c("Alzheimer's", "Frontotermporal"),
       full_auc = mean(roc_lb$AUC))
 
-bind_rows(compare_out_lb) |> mutate(dif = ifelse(dif < 0, 0, dif)) |>
+bind_rows(compare_out_lb) |>
+  mutate(dif = ifelse(dif < 0, 0, dif)) |>
   arrange(desc(dif))

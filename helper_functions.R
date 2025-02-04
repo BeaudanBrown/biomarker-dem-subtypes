@@ -23,7 +23,7 @@ auroc <- function(data, outcome, reference) {
     strata_ids = data$Y
   )
 
-  plan(multicore, workers = 5)
+  plan(multicore, workers = as.numeric(Sys.getenv("N_CORES")))
 
   out <-
     cross_validate(
@@ -116,7 +116,7 @@ plot_roc <- function(roc_data, title_text, nfolds = 10) {
       TPR = roc_data$TPR,
       FPR = roc_data$FPR
     ) |>
-    mutate(threshold = rep(1:(length(roc_data$TPR)/nfolds), nfolds)) |>
+    mutate(threshold = rep(1:(length(roc_data$TPR) / nfolds), nfolds)) |>
     group_by(threshold) |>
     summarise(
       TPR = mean(TPR),
@@ -153,7 +153,7 @@ plot_roc <- function(roc_data, title_text, nfolds = 10) {
 
 plot_roc_combined <- function(roc_list, title_text, nfolds = 10) {
 
-  extract_results <- function(roc_data){
+  extract_results <- function(roc_data) {
     AUC <- round(mean(roc_data$AUC), 2)
 
     data <-
@@ -161,7 +161,7 @@ plot_roc_combined <- function(roc_list, title_text, nfolds = 10) {
         TPR = roc_data$TPR,
         FPR = roc_data$FPR
       ) |>
-      mutate(threshold = rep(1:(length(roc_data$TPR)/nfolds), nfolds)) |>
+      mutate(threshold = rep(1:(length(roc_data$TPR) / nfolds), nfolds)) |>
       group_by(threshold) |>
       summarise(
         TPR = mean(TPR),
@@ -171,18 +171,18 @@ plot_roc_combined <- function(roc_list, title_text, nfolds = 10) {
     return(data)
   }
 
-combined_data <- map(roc_list, extract_results)
-combined_data <- bind_rows(combined_data, .id = "Outcome")
-AD_AUC <- round(mean(combined_data[combined_data$Outcome == "AD", ]$AUC), 2)
-LB_AUC <- round(mean(combined_data[combined_data$Outcome == "LB", ]$AUC), 2)
-FT_AUC <- round(mean(combined_data[combined_data$Outcome == "FT", ]$AUC), 2)
-combined_data$Outcome <- as.factor(combined_data$Outcome)
-levels(combined_data$Outcome) <-
-  c(
-    paste0("AD vs other dementias (AUC: ", AD_AUC, ")"),
-    paste0("FTD vs other dementias (AUC: ", FT_AUC, ")"),
-    paste0("LBD vs other dementias (AUC: ", LB_AUC, ")")
-  )
+  combined_data <- map(roc_list, extract_results)
+  combined_data <- bind_rows(combined_data, .id = "Outcome")
+  AD_AUC <- round(mean(combined_data[combined_data$Outcome == "AD", ]$AUC), 2)
+  LB_AUC <- round(mean(combined_data[combined_data$Outcome == "LB", ]$AUC), 2)
+  FT_AUC <- round(mean(combined_data[combined_data$Outcome == "FT", ]$AUC), 2)
+  combined_data$Outcome <- as.factor(combined_data$Outcome)
+  levels(combined_data$Outcome) <-
+    c(
+      paste0("AD vs other dementias (AUC: ", AD_AUC, ")"),
+      paste0("FTD vs other dementias (AUC: ", FT_AUC, ")"),
+      paste0("LBD vs other dementias (AUC: ", LB_AUC, ")")
+    )
 
 
   plot <- ggplot(combined_data, aes(x = FPR, y = TPR, colour = Outcome)) +

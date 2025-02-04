@@ -28,6 +28,31 @@
             rPkgs = (with pkgs.rPackages; [
               languageserver
               dotenv
+              readxl
+              performance
+              lme4
+              data_table
+              tidyverse
+              SuperLearner
+              gtsummary
+              ggthemes
+              vimp
+              xgboost
+              glmnet
+              ranger
+              randomForest
+              earth
+              gam
+              pROC
+              origami
+              future
+              future_apply
+              logistf
+              rms
+              psych
+              bayesplot
+              knitr
+              cardx
             ]);
             my-r = pkgs.rWrapper.override {
               packages = rPkgs;
