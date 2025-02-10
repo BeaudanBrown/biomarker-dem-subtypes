@@ -234,15 +234,204 @@ plot_roc(roc_ft, "Frontotemporal vs other dementias")
 
 roc_out <- list(AD = roc_ad, LB = roc_lb, FT = roc_ft)
 
-plot_roc_combined(roc_out, "ROC curves for dementia subtypes")
+outcome_label_map <- c(
+  "AD"  = "AD vs other dementias (AUC: %s)",
+  "FT"  = "FTD vs other dementias (AUC: %s)",
+  "LB"  = "LBD vs other dementias (AUC: %s)"
+)
+plot_roc_combined(roc_list = roc_out,
+                 title_text = "ROC curves for dementia subtypes",
+                 label_map = outcome_label_map)
+
+#### Sex stratification ####
+
+men <- df |>
+  filter(!female == 1) |>
+  select(-female)
+women <- df |>
+  filter(!female == 0) |>
+  select(-female)
+
+#### AD ####
+
+roc_ad_men <- auroc(men, "Alzheimer's", c("Frontotermporal", "Lewy bodies"))
+
+plot_roc(roc_ad_men, "Alzheimer's vs other dementias (men)")
+
+roc_ad_women <- auroc(women, "Alzheimer's", c("Frontotermporal", "Lewy bodies"))
+
+plot_roc(roc_ad_women, "Alzheimer's vs other dementias (women)")
+
+roc_ad_sex <- list(MEN = roc_ad_men, WOMEN = roc_ad_women)
+
+sex_label_map <- c(
+  "MEN"  = "AD in men vs other dementias (AUC: %s)",
+  "WOMEN"  = "AD in women vs other dementias (AUC: %s)"
+)
+ad_sex_plot <- plot_roc_combined(roc_list = roc_ad_sex,
+                 title_text = "ROC curves for AD stratified by sex",
+                 label_map = sex_label_map)
+
+#### FT ####
+
+roc_ft_men <- auroc(men, "Frontotermporal", c("Alzheimer's", "Lewy bodies"), nfolds = 5)
+
+plot_roc(roc_ft_men, "Frontotermporal vs other dementias (men)", nfolds = 5)
+
+roc_ft_women <- auroc(women, "Frontotermporal", c("Alzheimer's", "Lewy bodies"), nfolds = 5)
+
+plot_roc(roc_ft_women, "Frontotermporal vs other dementias (women)", nfolds = 5)
+
+roc_ft_sex <- list(MEN = roc_ft_men, WOMEN = roc_ft_women)
+
+sex_label_map <- c(
+  "MEN"  = "FT in men vs other dementias (AUC: %s)",
+  "WOMEN"  = "FT in women vs other dementias (AUC: %s)"
+)
+ft_sex_plot <- plot_roc_combined(roc_list = roc_ft_sex,
+                 title_text = "ROC curves for FT stratified by sex",
+                 label_map = sex_label_map,
+                 nfolds = 5)
+
+#### LB ####
+
+roc_lb_men <- auroc(men, "Lewy bodies", c("Alzheimer's", "Frontotermporal"), nfolds = 5)
+
+plot_roc(roc_lb_men, "Lewy bodies vs other dementias (men)", nfolds = 5)
+
+roc_lb_women <- auroc(women, "Lewy bodies", c("Alzheimer's", "Frontotermporal"), nfolds = 5)
+
+plot_roc(roc_lb_women, "Lewy bodies vs other dementias (women)", nfolds = 5)
+
+roc_lb_sex <- list(MEN = roc_lb_men, WOMEN = roc_lb_women)
+
+sex_label_map <- c(
+  "MEN"  = "FT in men vs other dementias (AUC: %s)",
+  "WOMEN"  = "FT in women vs other dementias (AUC: %s)"
+)
+lb_sex_plot <- plot_roc_combined(roc_list = roc_lb_sex,
+                 title_text = "ROC curves for LB stratified by sex",
+                 label_map = sex_label_map,
+                 nfolds = 5)
 
 #### variable importance ####
 
-plan(multicore, workers = 3)
+plan(multicore, workers = as.numeric(Sys.getenv("N_CORES")))
+
+#### Men ####
+
+vimp_data_men <-
+  men |>
+  select(Diagnosis_combined, age_combined, starts_with("mean_"))
+
+vimp_men <- lapply(c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
+                  function(outcome) {
+                    vimp_function_par(data = vimp_data_men,
+                                                      outcome_subtype = outcome,
+                                                      stratification = "men")
+                  })
+
+preds <- vimp_data_men |>
+  select(-Diagnosis_combined) |>
+  names()
+
+# AD
+knitr::kable(
+  cbind(preds[as.numeric(vimp_men[[1]]$mat$s)],
+  vimp_men[[1]]$est,
+  vimp_men[[1]]$ci) |>
+    as_tibble() |>
+    mutate(across(c(V2, V3, V4), as.numeric)) |>
+    mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
+    mutate(V2 = paste0(V2, " (", V3, ", ", V4, ")")) |>
+    select(-V3, -V4)
+)
+
+# FT
+knitr::kable(
+  cbind(preds[as.numeric(vimp_men[[2]]$mat$s)],
+  vimp_men[[2]]$est,
+  vimp_men[[2]]$ci) |>
+    as_tibble() |>
+    mutate(across(c(V2, V3, V4), as.numeric)) |>
+    mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
+    mutate(V2 = paste0(V2, " (", V3, ", ", V4, ")")) |>
+    select(-V3, -V4)
+)
+
+# LB
+knitr::kable(
+  cbind(preds[as.numeric(vimp_men[[3]]$mat$s)],
+  vimp_men[[3]]$est,
+  vimp_men[[3]]$ci) |>
+    as_tibble() |>
+    mutate(across(c(V2, V3, V4), as.numeric)) |>
+    mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
+    mutate(V2 = paste0(V2, " (", V3, ", ", V4, ")")) |>
+    select(-V3, -V4)
+)
+
+#### Women ####
+
+vimp_data_women <-
+  women |>
+  select(Diagnosis_combined, age_combined, starts_with("mean_"))
+
+vimp_women <- lapply(c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
+                  function(outcome) {
+                    vimp_function_par(data = vimp_data_women,
+                                      outcome_subtype = outcome,
+                                      stratification = "women")
+                  })
+
+preds <- vimp_data_women |>
+  select(-Diagnosis_combined) |>
+  names()
+
+# AD
+knitr::kable(
+  cbind(preds[as.numeric(vimp_women[[1]]$mat$s)],
+  vimp_women[[1]]$est,
+  vimp_women[[1]]$ci) |>
+    as_tibble() |>
+    mutate(across(c(V2, V3, V4), as.numeric)) |>
+    mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
+    mutate(V2 = paste0(V2, " (", V3, ", ", V4, ")")) |>
+    select(-V3, -V4)
+)
+
+# FT
+knitr::kable(
+  cbind(preds[as.numeric(vimp_women[[2]]$mat$s)],
+  vimp_women[[2]]$est,
+  vimp_women[[2]]$ci) |>
+    as_tibble() |>
+    mutate(across(c(V2, V3, V4), as.numeric)) |>
+    mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
+    mutate(V2 = paste0(V2, " (", V3, ", ", V4, ")")) |>
+    select(-V3, -V4)
+)
+
+# LB
+knitr::kable(
+  cbind(preds[as.numeric(vimp_women[[3]]$mat$s)],
+  vimp_women[[3]]$est,
+  vimp_women[[3]]$ci) |>
+    as_tibble() |>
+    mutate(across(c(V2, V3, V4), as.numeric)) |>
+    mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
+    mutate(V2 = paste0(V2, " (", V3, ", ", V4, ")")) |>
+    select(-V3, -V4)
+)
+
+#### All cohort ####
+
+vimp_data <- df |>
+  select(Diagnosis_combined, age_combined, female, starts_with("mean_"))
 
 vimp_out <- future_lapply(
   c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
-  FUN = function(.x) vimp_function(data = df, .x),
+  FUN = function(.x) vimp_function(data = vimp_data, .x),
   future.seed = 1234
 )
 
