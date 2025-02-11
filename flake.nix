@@ -53,6 +53,7 @@
               bayesplot
               knitr
               cardx
+              corrr
             ]);
             my-r = pkgs.rWrapper.override {
               packages = rPkgs;
