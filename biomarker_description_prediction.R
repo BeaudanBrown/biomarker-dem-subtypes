@@ -216,13 +216,25 @@ df <- df |> select(-Site, -race_combined, -ends_with("_ICC"))
 
 ad_control <- auroc(df, "Alzheimer's", "Control")
 
+plot_roc(ad_control, "Alzheimer's vs control")
+
 # FTD vs control
 
 ftd_control <- auroc(df, "Frontotermporal", "Control")
 
+plot_roc(ftd_control, "Frontotermporal vs control")
+
 # LBD vs control
 
 lbd_control <- auroc(df, "Lewy bodies", "Control")
+
+plot_roc(lbd_control, "Lewy bodies vs control")
+
+# LBD vs FTD
+
+lbd_ftd <- auroc(df, "Lewy bodies", "Frontotermporal")
+
+plot_roc(lbd_ftd, "Lewy bodies vs frontotemporal")
 
 # AD vs others
 
@@ -266,13 +278,17 @@ women <- df |>
 
 #### AD ####
 
-roc_ad_men <- auroc(men, "Alzheimer's", c("Frontotermporal", "Lewy bodies"))
+roc_ad_men <- auroc(men, "Alzheimer's", c("Frontotermporal", "Lewy bodies"),
+  nfolds = 5
+)
 
-plot_roc(roc_ad_men, "Alzheimer's vs other dementias (men)")
+plot_roc(roc_ad_men, "Alzheimer's vs other dementias (men)", nfolds = 5)
 
-roc_ad_women <- auroc(women, "Alzheimer's", c("Frontotermporal", "Lewy bodies"))
+roc_ad_women <- auroc(women, "Alzheimer's", c("Frontotermporal", "Lewy bodies"),
+  nfolds = 5
+)
 
-plot_roc(roc_ad_women, "Alzheimer's vs other dementias (women)")
+plot_roc(roc_ad_women, "Alzheimer's vs other dementias (women)", nfolds = 5)
 
 roc_ad_sex <- list(MEN = roc_ad_men, WOMEN = roc_ad_women)
 
@@ -282,11 +298,13 @@ sex_label_map <- c(
 )
 ad_sex_plot <- plot_roc_combined(roc_list = roc_ad_sex,
                  title_text = "ROC curves for AD stratified by sex",
-                 label_map = sex_label_map)
+                 label_map = sex_label_map,
+                nfolds = 5)
 
 #### FT ####
 
-roc_ft_men <- auroc(men, "Frontotermporal", c("Alzheimer's", "Lewy bodies"), nfolds = 5)
+roc_ft_men <- auroc(men, "Frontotermporal", c("Alzheimer's", "Lewy bodies"),
+nfolds = 5)
 
 plot_roc(roc_ft_men, "Frontotermporal vs other dementias (men)", nfolds = 5)
 

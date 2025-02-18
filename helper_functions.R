@@ -198,7 +198,8 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 10) {
     labs(
       x = "False Positive Rate (1 - Specificity)",
       y = "True Positive Rate (Sensitivity)",
-      title = title_text
+      title = title_text,
+      colour = NULL
     ) +
     bayesplot::theme_default() +
     scale_color_colorblind() +
