@@ -23,7 +23,7 @@ auroc <- function(data, outcome, reference, nfolds = 10) {
     strata_ids = data$Y
   )
 
-  plan(multicore, workers = as.numeric(Sys.getenv("N_CORES")))
+  #plan(multicore, workers = as.numeric(Sys.getenv("N_CORES")))
 
   out <-
     cross_validate(

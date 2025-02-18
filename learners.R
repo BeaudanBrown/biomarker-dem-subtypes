@@ -2,9 +2,12 @@ SL.library <- c(
   "SL.glm",
   "SL.firth",
   "SL.glmnet",
+  "SL.xgboost",
   "SL.gam2",
   "SL.earth",
-  "SL.ranger2"
+  "SL.ranger",
+  "SL.ranger2",
+  "SL.bayesglm"
 )
 
 # custom learners

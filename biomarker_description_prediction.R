@@ -113,7 +113,10 @@ df <- read_data()
 
 # select relevant variables
 df <-
-  df |> select(Diagnosis_combined, age_combined, female, starts_with("mean_"), Site, race_combined, ends_with("_ICC"))
+  df |> select(
+    Diagnosis_combined, age_combined, female, starts_with("mean_"),
+    Site, race_combined, ends_with("_ICC")
+  )
 
 
 #### Descriptives ####
@@ -203,15 +206,24 @@ df |>
 
 df <- df |> select(-mean_ab42_ab40_ratio)
 
-# remove controls
-
-df <- df |> filter(!Diagnosis_combined == "Control")
-
-# remove extras
+# remove extra variables
 
 df <- df |> select(-Site, -race_combined, -ends_with("_ICC"))
 
 ### ROC curves ###
+
+# AD vs control
+
+ad_control <- auroc(df, "Alzheimer's", "Control")
+
+# FTD vs control
+
+ftd_control <- auroc(df, "Frontotermporal", "Control")
+
+# LBD vs control
+
+lbd_control <- auroc(df, "Lewy bodies", "Control")
+
 # AD vs others
 
 roc_ad <- auroc(df, "Alzheimer's", c("Frontotermporal", "Lewy bodies"))
