@@ -4,7 +4,7 @@ source("learners.R")
 
 ### AUROC function
 
-auroc <- function(data, outcome, reference, nfolds = 10) {
+auroc <- function(data, outcome, reference, nfolds = 5) {
   # filter to outcome and reference
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
@@ -107,7 +107,7 @@ calculate_tpr_fpr <- function(threshold, data) {
 }
 
 
-plot_roc <- function(roc_data, title_text, nfolds = 10) {
+plot_roc <- function(roc_data, title_text, nfolds = 5) {
 
   AUC <- round(mean(roc_data$AUC), 2)
 
@@ -151,7 +151,7 @@ plot_roc <- function(roc_data, title_text, nfolds = 10) {
   return(plot)
 }
 
-plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 10) {
+plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
 
   # A helper function to extract the summary results from a single ROC
   extract_results <- function(roc_data) {

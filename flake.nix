@@ -54,7 +54,12 @@
               knitr
               cardx
               corrr
+              quarto
+              arm
             ]);
+            my-quarto = pkgs.quarto.override {
+              extraRPackages = rPkgs;
+            };
             my-r = pkgs.rWrapper.override {
               packages = rPkgs;
             };
@@ -66,6 +71,7 @@
                 {
                   packages = with pkgs; [
                     my-r
+                    my-quarto
                     icu.dev
                     glibcLocales
                   ];

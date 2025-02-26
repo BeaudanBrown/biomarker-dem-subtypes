@@ -5,7 +5,6 @@ standardise <- function(x) {
 }
 
 prepare <- function(df) {
-  df <- df |> filter(!is.na(mean_elisa) & !is.na(mean_ab40) & !is.na(mean_ykl))
 
   washington <- df |>
     filter(Site == "Washington") |>
@@ -27,29 +26,30 @@ prepare <- function(df) {
       CSF_sTREM2 = standardise(CSF_sTREM2),
       CSF_VILIP1 = standardise(CSF_VILIP1),
       CSF_Ng = standardise(CSF_Ng),
+      CSF_AB_Ratio = standardise(LUMIPULSE_CSF_AB42 / LUMIPULSE_CSF_AB40),
       CSF_SNAP25 = standardise(CSF_SNAP25)
     ) |>
-    setnames(
-      c(
-        "age_combined",
-        "av45/PIB_fsuvr_rsf_tot_cortmean",
-        "Centiloid_AV45_fSUVR_TOT_CORTMEA"
-      ),
-      c(
-        "age",
-        "raw_suvr",
-        "centiloid"
-      )
+    rename(
+      "age" = "age_combined",
+      "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
+      "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
     )
   return(washington)
 }
 
 
-inflam_cdr <- function(df) {
+inflam_cdr <- function(df, diagnosis = NULL) {
+  if (!is.null(diagnosis)) {
+    df <- df[df$Diagnosis_combined %in% diagnosis, ]
+  }
   washington <- prepare(df)
+  cdr_df <- washington |>
+    filter(!is.na(mean_elisa) & !is.na(cdr))
+  mmse_df <- washington |>
+    filter(!is.na(mean_elisa) & !is.na(MMSE))
 
-  get_cdr_mmse_corr <- function(marker) {
-    cdr_coef <- washington |>
+  get_cdr_corr <- function(marker) {
+    cdr_coef <- cdr_df |>
       lm(
         as.formula(paste0(
           "cdr ~ ",
@@ -63,7 +63,11 @@ inflam_cdr <- function(df) {
       ) |>
       coef()
 
-    mmse_coef <- washington |>
+    return(cdr_coef[[marker]])
+  }
+
+  get_mmse_corr <- function(marker) {
+    mmse_coef <- mmse_df |>
       lm(
         as.formula(paste0(
           "MMSE ~ ",
@@ -77,7 +81,7 @@ inflam_cdr <- function(df) {
       ) |>
       coef()
 
-    return(c(cdr = cdr_coef[marker], mmse = mmse_coef[marker]))
+    return(mmse_coef[[marker]])
   }
   markers <- c(
     "mean_elisa",
@@ -90,11 +94,15 @@ inflam_cdr <- function(df) {
     "mean_ptau181",
     "mean_ptau217"
   )
-  return(sapply(markers, get_cdr_mmse_corr))
+  return(list(n_cdr = nrow(cdr_df), n_mmse = nrow(mmse_df), mmse = sapply(markers, get_mmse_corr), cdr = sapply(markers, get_cdr_corr)))
 }
 
-csf_corr <- function(df) {
-  washington <- prepare(df)
+csf_corr <- function(df, diagnosis = NULL) {
+  if (!is.null(diagnosis)) {
+    df <- df[df$Diagnosis_combined %in% diagnosis, ]
+  }
+  washington <- prepare(df) |>
+    filter(!is.na(mean_ptau217) & !is.na(CSF_AB_Ratio))
 
   get_ptau_csf_corr <- function(csf_marker) {
     ptau_coef <- washington |>
@@ -114,34 +122,34 @@ csf_corr <- function(df) {
     return(ptau_coef["mean_ptau217"])
   }
   csf_markers <- washington |>
-    select(starts_with("CSF_")) |>
+    select(CSF_AB_Ratio) |>
     names()
-  return(sapply(csf_markers, get_ptau_csf_corr))
+  return(list(n = nrow(washington), coefs = sapply(csf_markers, get_ptau_csf_corr)))
 }
 
-pet_corr <- function(df) {
-  pet_data <- df |>
+pet_corr <- function(df, diagnosis = NULL) {
+  if (!is.null(diagnosis)) {
+    df <- df[df$Diagnosis_combined %in% diagnosis, ]
+  }
+  pet_data <- prepare(df) |>
     select(
-      age_combined,
+      age,
       female,
-      "av45/PIB_fsuvr_rsf_tot_cortmean",
-      "Centiloid_AV45_fSUVR_TOT_CORTMEA",
+      raw_suvr,
+      centiloid,
       zscore,
       mean_ptau217
     ) |>
-    rename(
-      "age" = "age_combined",
-      "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
-      "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
-    ) |>
+    filter(!is.na(mean_ptau217) & !is.na(raw_suvr)) |>
     mutate(
       zscore = standardise(zscore),
       raw_suvr = standardise(raw_suvr),
       centiloid = standardise(centiloid),
       mean_ptau217 = standardise(mean_ptau217)
     )
+  n <- nrow(pet_data)
 
-  sapply(c(
+  coefs <- sapply(c(
     "zscore",
     "raw_suvr",
     "centiloid"
@@ -160,8 +168,9 @@ pet_corr <- function(df) {
       data = pet_data
     ) |>
       coef()
-    return(coefs["mean_ptau217"])
+    return(coefs[["mean_ptau217"]])
   })
+  return(list(n = n, coefs = coefs))
 }
 
 

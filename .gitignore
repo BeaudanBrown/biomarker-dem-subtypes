@@ -1,3 +1,5 @@
+*.rds
+*.html
 data/
 plots/
 to do
@@ -59,3 +61,5 @@ rsconnect/
 
 .devenv
 .direnv
+
+/.quarto/

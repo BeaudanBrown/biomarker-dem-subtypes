@@ -1,0 +1,511 @@
+---
+title: "ROCs and correlations"
+format:
+  html:
+    embed-resources: true
+---
+
+```{r setup, include=FALSE}
+# Set global chunk options
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r}
+#| include: false
+library(tidyverse)
+library(SuperLearner)
+library(gtsummary)
+library(ggthemes)
+library(vimp)
+library(xgboost)
+library(glmnet)
+library(ranger)
+library(randomForest)
+library(earth)
+library(gam)
+library(pROC)
+library(origami)
+source("helper_functions.R")
+library(future)
+library(future.apply)
+library(parallel)
+library(logistf)
+library(rms)
+library(psych)
+library(bayesplot)
+library(knitr)
+
+dotenv::load_dot_env()
+
+# read data
+read_data <- function() {
+  data_dir <- Sys.getenv("DATA_DIR")
+  df <- read_csv(file.path(data_dir, Sys.getenv("MERGED_OUTPUT_FILE")))
+
+# Merge diagnosis variables between Texas and Washington data
+
+  df <-
+    df |>
+    mutate(Diagnosis_combined = case_when(
+      Diagnosis == "normal" ~ "CO",
+      Diagnosis == "AD" ~ "AD",
+      Diagnosis == "FTD" ~ "FTD",
+      Diagnosis == "AD/VD" ~ "AD",
+      Diagnosis == "MCI" ~ "MCI",
+      Diagnosis == "DLB" ~ "DLB",
+      Diagnosis == "DLB, VD" ~ "DLB",
+      Diagnosis == "Parkinsons" ~ "DLB",
+      Final_Status == "AD" ~ "AD",
+      Final_Status == "DLB" ~ "DLB",
+      Final_Status == "FTD" ~ "FTD",
+      Final_Status == "CO" ~ "CO",
+      TRUE ~ "other"
+    ))
+
+# Merge race
+
+  df <- df |>
+    mutate(race_combined = case_when(
+      Race == "White" ~ "White",
+      Race == "African American" ~ "African American",
+      Race == "Asian" ~ "Asian",
+      Race == "American Indian or Alaska Native" ~ "American Indian/Alaska Native",
+      RACE == "White" ~ "White",
+      RACE == "Black/African American" ~ "African American",
+      RACE == "Asian" ~ "Asian",
+      RACE == "American Indian/Alaska Native" ~ "American Indian/Alaska Native",
+      is.na(Race) & is.na(RACE) ~ "Other",
+      TRUE ~ "Other"
+    ))
+
+# add site variable
+
+  df$Site <- ifelse(!is.na(df$SEX), "Texas", "Washington")
+
+# exclude MCI and other
+
+  df <- df |>
+    filter(!Diagnosis_combined %in% c("MCI", "other") & !is.na(Diagnosis_combined))
+
+# exclude those missing biomarkers
+
+  # df <- df |> filter(!is.na(mean_elisa) & !is.na(mean_ab40) & !is.na(mean_ykl))
+
+# code diagnosis as factor and set control as reference
+
+  df <- df |>
+    mutate(Diagnosis_combined = as.factor(fct_recode(Diagnosis_combined,
+      "Alzheimer's" = "AD", "Control" = "CO", "Lewy bodies" = "DLB",
+      "Frontotermporal" = "FTD"
+    ))) |>
+    mutate(Diagnosis_combined = fct_relevel(Diagnosis_combined, "Control"))
+
+# set sex to factor
+
+  df$sex_combined <- as.factor(df$sex_combined)
+  df$female <- ifelse(df$sex_combined == "Female", 1, 0)
+
+# Add ab42 to ab40 ratio
+
+  df$mean_ab42_ab40_ratio <- df$mean_ab42 / df$mean_ab40
+
+## Truncate biomarkers at the 99th percentile
+
+  df <- df |>
+    mutate(across(starts_with("mean_"),
+  ~ ifelse(.x > quantile(.x, 0.99, na.rm = TRUE), quantile(.x, 0.99, na.rm = TRUE), .x)))
+
+  df <- df |>
+    mutate(across(starts_with("mean_"),
+  ~ ifelse(.x < quantile(.x, 0.01, na.rm = TRUE), quantile(.x, 0.01, na.rm = TRUE), .x)))
+  return(df)
+}
+
+df <- read_data()
+
+# select relevant variables
+df <-
+  df |> select(
+    Diagnosis_combined, age_combined, female, starts_with("mean_"),
+    Site, race_combined, ends_with("_ICC")
+  )
+
+#### Prediction ####
+
+# remove AB42 AB40 ratio
+
+df <- df |> select(-mean_ab42_ab40_ratio)
+
+# remove extra variables
+
+df <- df |> select(-Site, -race_combined, -ends_with("_ICC"))
+
+### ROC curves ###
+
+roc_definitions <- list(
+  "AD_vs_Control"        = list(target = "Alzheimer's", comparators = "Control", title = "Alzheimer's vs control"),
+  "FTD_vs_Control"       = list(target = "Frontotermporal", comparators = "Control", title = "Frontotermporal vs control"),
+  "LBD_vs_Control"       = list(target = "Lewy bodies", comparators = "Control", title = "Lewy bodies vs control"),
+  "LBD_vs_FTD"           = list(target = "Lewy bodies", comparators = "Frontotermporal", title = "Lewy bodies vs frontotemporal"),
+  "AD_vs_Others"         = list(target = "Alzheimer's", comparators = c("Frontotermporal", "Lewy bodies"), title = "Alzheimer's vs other dementias"),
+  "LB_vs_Others"         = list(target = "Lewy bodies", comparators = c("Frontotermporal", "Alzheimer's"), title = "Lewy bodies vs other dementias"),
+  "FT_vs_Others"         = list(target = "Frontotermporal", comparators = c("Lewy bodies", "Alzheimer's"), title = "Frontotemporal vs other dementias")
+)
+
+run_and_plot_roc <- function(data, target, comparators, title, nfolds = 5) {
+  roc_result <- auroc(data, target, comparators, nfolds = nfolds)
+  roc_plot <- plot_roc(roc_result, title, nfolds = nfolds)
+  return(list(roc_result = roc_result, roc_plot = roc_plot))
+}
+
+plan(multicore, workers = as.numeric(Sys.getenv("N_CORES")))
+roc_results <- map(roc_definitions, function(def) {
+  run_and_plot_roc(df, def$target, def$comparators, def$title)
+})
+
+roc_combined <- list(
+  AD = roc_results$AD_vs_Others[["roc_result"]],
+  LB = roc_results$LB_vs_Others[["roc_result"]],
+  FT = roc_results$FT_vs_Others[["roc_result"]]
+)
+
+outcome_label_map <- c(
+  "AD" = "AD/others (AUC: %s)",
+  "FT" = "FTD/others (AUC: %s)",
+  "LB" = "LBD/others (AUC: %s)"
+)
+```
+
+## Subtypes vs other dementias
+```{r}
+roc_results$AD_vs_Others[["roc_plot"]]
+roc_results$LB_vs_Others[["roc_plot"]]
+roc_results$FT_vs_Others[["roc_plot"]]
+
+plot_roc_combined(roc_list = roc_combined,
+                  title_text = "ROC curves for dementia subtypes",
+                  label_map = outcome_label_map)
+```
+
+### Sex stratification
+```{r}
+#| include: false
+men <- df |>
+  filter(!female == 1) |>
+  select(-female)
+women <- df |>
+  filter(!female == 0) |>
+  select(-female)
+
+#### AD ####
+roc_ad_men <- auroc(men, "Alzheimer's", c("Frontotermporal", "Lewy bodies"),
+  nfolds = 5
+)
+
+plot_roc(roc_ad_men, "Alzheimer's vs other dementias (men)", nfolds = 5)
+
+roc_ad_women <- auroc(women, "Alzheimer's", c("Frontotermporal", "Lewy bodies"),
+  nfolds = 5
+)
+
+plot_roc(roc_ad_women, "Alzheimer's vs other dementias (women)", nfolds = 5)
+
+roc_ad_sex <- list(MEN = roc_ad_men, WOMEN = roc_ad_women)
+
+sex_label_map <- c(
+  "MEN"  = "Men (AUC: %s)",
+  "WOMEN"  = "Women (AUC: %s)"
+)
+ad_sex_plot <- plot_roc_combined(roc_list = roc_ad_sex,
+                 title_text = "AD vs other dementias",
+                 label_map = sex_label_map,
+                nfolds = 5)
+
+#### FT ####
+
+roc_ft_men <- auroc(men, "Frontotermporal", c("Alzheimer's", "Lewy bodies"),
+nfolds = 5)
+
+plot_roc(roc_ft_men, "Frontotermporal vs other dementias (men)", nfolds = 5)
+
+roc_ft_women <- auroc(women, "Frontotermporal", c("Alzheimer's", "Lewy bodies"), nfolds = 5)
+
+plot_roc(roc_ft_women, "Frontotermporal vs other dementias (women)", nfolds = 5)
+
+roc_ft_sex <- list(MEN = roc_ft_men, WOMEN = roc_ft_women)
+
+ft_sex_plot <- plot_roc_combined(roc_list = roc_ft_sex,
+                 title_text = "FT vs other dementias",
+                 label_map = sex_label_map,
+                 nfolds = 5)
+
+#### LB ####
+
+roc_lb_men <- auroc(men, "Lewy bodies", c("Alzheimer's", "Frontotermporal"), nfolds = 5)
+
+plot_roc(roc_lb_men, "Lewy bodies vs other dementias (men)", nfolds = 5)
+
+roc_lb_women <- auroc(women, "Lewy bodies", c("Alzheimer's", "Frontotermporal"), nfolds = 5)
+
+plot_roc(roc_lb_women, "Lewy bodies vs other dementias (women)", nfolds = 5)
+
+roc_lb_sex <- list(MEN = roc_lb_men, WOMEN = roc_lb_women)
+
+lb_sex_plot <- plot_roc_combined(roc_list = roc_lb_sex,
+                 title_text = "LBD vs other dementias",
+                 label_map = sex_label_map,
+                 nfolds = 5)
+```
+
+```{r}
+ad_sex_plot
+lb_sex_plot
+ft_sex_plot
+```
+
+
+### Subtypes vs control
+
+```{r}
+roc_results$AD_vs_Control[["roc_plot"]]
+roc_results$FTD_vs_Control[["roc_plot"]]
+roc_results$LBD_vs_Control[["roc_plot"]]
+```
+
+### LBD vs FTD
+
+```{r}
+roc_results$LBD_vs_FTD[["roc_plot"]]
+```
+
+
+
+```{r}
+#| include: false
+
+source("correlations.R")
+df <- read_data()
+
+print_pet_table <- function(pet_output, caption) {
+  df <- as.data.frame(t(pet_output$coefs))
+  rownames(df) <- NULL
+  df <- df |>
+    rename(
+      "Z-score" = "zscore.mean_ptau217",
+      "Raw SUVR" = "raw_suvr.mean_ptau217",
+      "Centiloid" = "centiloid.mean_ptau217"
+      )
+
+  # Use knitr::kable to print the table.
+  knitr::kable(df, digits = 3, caption = paste0(caption, " (n = ", pet_output$n, ")"))
+}
+```
+
+## Inflammatory Correlations
+```{r}
+whole_inflam <- inflam_cdr(df)
+Any_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
+AD_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's"))
+FTD_inflam <- inflam_cdr(df, diagnosis = c("Frontotermporal"))
+LBD_inflam <- inflam_cdr(df, diagnosis = c("Lewy bodies"))
+
+mmse <- bind_cols(
+          as.data.frame(whole_inflam$mmse),
+          as.data.frame(Any_inflam$mmse),
+          as.data.frame(AD_inflam$mmse),
+          as.data.frame(FTD_inflam$mmse),
+          as.data.frame(LBD_inflam$mmse)
+          ) |>
+  setNames(c(
+             paste0("All (n = ", whole_inflam$n_mmse, ")"),
+             paste0("Any Dem (n = ", Any_inflam$n_mmse, ")"),
+             paste0("AD (n = ", AD_inflam$n_mmse, ")"),
+             paste0("LBD (n = ", FTD_inflam$n_mmse, ")"),
+             paste0("FTD (n = ", LBD_inflam$n_mmse, ")")
+          )) |>
+  rownames_to_column("Marker") |>
+  relocate(Marker) |>
+  mutate(Marker = case_when(
+                            Marker == "mean_elisa" ~ "CD14",
+                            Marker == "mean_ykl" ~ "YKL-40",
+                            Marker == "mean_gfap" ~ "GFAP",
+                            Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+                            Marker == "mean_ab40" ~ "AB40",
+                            Marker == "mean_ab42" ~ "AB42",
+                            Marker == "mean_tdp" ~ "TDP-43",
+                            Marker == "mean_ptau181" ~ "pTau-181",
+                            Marker == "mean_ptau217" ~ "pTau-217",
+                            TRUE ~ Marker
+                            ))
+knitr::kable(mmse, digits = 3, caption = "Inflamatory Markers and MMSE (age/sex adjusted)")
+
+df |>
+  filter(!is.na(mean_ptau217) & !is.na(MMSE)) |>
+  filter(Site == "Washington") |>
+  rename("pTau217" = "mean_ptau217") |>
+  ggplot(aes(x = pTau217, y = MMSE, color = Diagnosis_combined)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(color = "Diagnosis") +
+  ggtitle("pTau-217 vs MMSE (not adjusted)")
+
+
+df |>
+  filter(!is.na(mean_ab42_ab40_ratio) & !is.na(MMSE)) |>
+  filter(Site == "Washington") |>
+  rename("ABRatio" = "mean_ab42_ab40_ratio") |>
+  ggplot(aes(x = ABRatio, y = MMSE, color = Diagnosis_combined)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(color = "Diagnosis") +
+  ggtitle("AB-Ratio vs MMSE (not adjusted)")
+
+df |>
+  filter(!is.na(mean_gfap) & !is.na(MMSE)) |>
+  filter(Site == "Washington") |>
+  rename("GFAP" = "mean_gfap") |>
+  ggplot(aes(x = GFAP, y = MMSE, color = Diagnosis_combined)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(color = "Diagnosis") +
+  ggtitle("GFAP vs MMSE (not adjusted)")
+
+cdr <- bind_cols(
+          as.data.frame(whole_inflam$cdr),
+          as.data.frame(Any_inflam$cdr),
+          as.data.frame(AD_inflam$cdr),
+          as.data.frame(FTD_inflam$cdr),
+          as.data.frame(LBD_inflam$cdr)
+          ) |>
+  setNames(c(
+             paste0("All (n = ", whole_inflam$n_cdr, ")"),
+             paste0("Any Dem (n = ", Any_inflam$n_cdr, ")"),
+             paste0("AD (n = ", AD_inflam$n_cdr, ")"),
+             paste0("LBD (n = ", FTD_inflam$n_cdr, ")"),
+             paste0("FTD (n = ", LBD_inflam$n_cdr, ")")
+          )) |>
+  rownames_to_column("Marker") |>
+  relocate(Marker) |>
+  mutate(Marker = case_when(
+                            Marker == "mean_elisa" ~ "CD14",
+                            Marker == "mean_ykl" ~ "YKL-40",
+                            Marker == "mean_gfap" ~ "GFAP",
+                            Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+                            Marker == "mean_ab40" ~ "AB40",
+                            Marker == "mean_ab42" ~ "AB42",
+                            Marker == "mean_tdp" ~ "TDP-43",
+                            Marker == "mean_ptau181" ~ "pTau-181",
+                            Marker == "mean_ptau217" ~ "pTau-217",
+                            TRUE ~ Marker
+                            ))
+knitr::kable(cdr, digits = 3, caption = "Inflamatory Markers and CDR (age/sex adjusted)")
+```
+
+## CSF correlations
+```{r}
+cohort_info <- list(
+  "All" = NULL,
+  "Any Dem" = c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
+  "Alzheimer's" = c("Alzheimer's"),
+  "Frontotermporal" = c("Frontotermporal"),
+  "Lewy bodies" = c("Lewy bodies")
+)
+
+# Loop over each cohort, run csf_corr(), extract the AB ratio + n,
+# and record the cohort name.
+results <- lapply(names(cohort_info), function(cohort) {
+  diagnosis <- cohort_info[[cohort]]
+  csf_out <- csf_corr(df, diagnosis = diagnosis)
+  tmp_df <- as.data.frame(t(csf_out$coefs))
+  ab_ratio <- round(tmp_df$CSF_AB_Ratio.mean_ptau217, 3)
+  list(Cohort = cohort, "AB42/AB40 Ratio" = ab_ratio, n = csf_out$n)
+})
+final_df <- do.call(rbind, results)
+knitr::kable(final_df, caption = "pTau-217 and CSF AB-Ratio (age/sex adjusted)")
+
+df |>
+  mutate(CSF_AB_Ratio = LUMIPULSE_CSF_AB42 / LUMIPULSE_CSF_AB40) |>
+  filter(!is.na(mean_ptau217) & !is.na(CSF_AB_Ratio)) |>
+  filter(Site == "Washington") |>
+  ggplot(aes(x = mean_ptau217, y = CSF_AB_Ratio, color = Diagnosis_combined)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    color = "Diagnosis",
+    title = "CSF AB-Ratio vs pTau-217 (not age/sex adjusted)",
+    x = "Mean pTau-217",
+    y = "CSF AB-Ratio"
+  )
+```
+
+## PET / PTAU217 correlations
+```{r}
+whole_pet <- pet_corr(df)
+Any_pet <- pet_corr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
+AD_pet <- pet_corr(df, diagnosis = c("Alzheimer's"))
+FTD_pet <- pet_corr(df, diagnosis = c("Frontotermporal"))
+LBD_pet <- pet_corr(df, diagnosis = c("Lewy bodies"))
+
+pet <- bind_cols(
+          as.data.frame(whole_pet$coefs),
+          as.data.frame(Any_pet$coefs),
+          as.data.frame(AD_pet$coefs),
+          as.data.frame(FTD_pet$coefs),
+          as.data.frame(LBD_pet$coefs)
+          ) |>
+  setNames(c(
+             paste0("All (n = ", whole_pet$n, ")"),
+             paste0("Any Dem (n = ", Any_pet$n, ")"),
+             paste0("AD (n = ", AD_pet$n, ")"),
+             paste0("LBD (n = ", FTD_pet$n, ")"),
+             paste0("FTD (n = ", LBD_pet$n, ")")
+          )) |>
+  rownames_to_column("Measure") |>
+  mutate(Measure = case_when(
+                            Measure == "zscore" ~ "Z-score",
+                            Measure == "raw_suvr" ~ "Raw SUVR",
+                            Measure == "centiloid" ~ "Centiloid",
+                            TRUE ~ Measure
+                            )) |>
+  relocate(Measure)
+
+knitr::kable(pet, digits = 3, caption = "PET Measures and pTau-217 (age/sex adjusted)")
+
+df |>
+  rename(
+    "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
+    "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
+  ) |>
+  filter(!is.na(mean_ptau217) & !is.na(raw_suvr)) |>
+  filter(Site == "Washington") |>
+  ggplot(aes(x = mean_ptau217, y = raw_suvr, color = Diagnosis_combined)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    color = "Diagnosis",
+    title = "Raw SUVR AB-Ratio vs pTau-217 (not age/sex adjusted)",
+    x = "Mean pTau-217",
+    y = "SUVR"
+  )
+
+df |>
+  rename(
+    "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
+    "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
+  ) |>
+  filter(!is.na(mean_ptau217) & !is.na(centiloid)) |>
+  filter(Site == "Washington") |>
+  ggplot(aes(x = mean_ptau217, y = centiloid, color = Diagnosis_combined)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    color = "Diagnosis",
+    title = "Centiloid AB-Ratio vs pTau-217 (not age/sex adjusted)",
+    x = "Mean pTau-217",
+    y = "Centiloid"
+  )
+```
