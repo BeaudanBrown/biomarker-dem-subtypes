@@ -17,6 +17,7 @@ library(logistf)
 library(knitr)
 source("learners.R")
 source("helper_functions.R")
+source("subset_search_helper_functions.R")
 
 dotenv::load_dot_env()
 data_dir <- Sys.getenv("DATA_DIR")
@@ -127,4 +128,9 @@ df <- df |> select(-Site, -race_combined, -ends_with("_ICC"))
 
 ## Cross validated biomarker subset search
 
-test <- backwards_search(df, "Alzheimer's", c("Lewy bodies", "Frontotermporal"))
+test <- get_biomarker_subset(
+  df,
+  "Alzheimer's",
+  c("Lewy bodies", "Frontotermporal"),
+  nfolds = 5
+)

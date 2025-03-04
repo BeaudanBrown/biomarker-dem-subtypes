@@ -7,10 +7,6 @@ get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
 
   data <- drop_na(data)
 
-  data$Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
-
-  data <- data |> select(-Diagnosis_combined)
-
   set.seed(1234)
 
   folds <- make_folds(nrow(data),
@@ -26,43 +22,39 @@ get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
       folds = folds,
       cv_fun = cv_biomarker_subset,
       data = data,
-      nfolds = nfolds
+      outcome = outcome,
+      reference = reference
     )
 
   return(out)
 }
 
-cv_biomarker_subset <- function(
-    fold,
-    data,
-    outcome = outcome,
-    reference = reference) {
-  train_data <- as_tibble(training(data))
-  valid_data <- as_tibble(validation(data))
+cv_biomarker_subset <-
+  function(fold,
+           data,
+           outcome,
+           reference) {
+    train_data <- as_tibble(training(data))
+    valid_data <- as_tibble(validation(data))
 
-  out <- backwards_search(train_data, outcome = outcome, reference = reference)
+    out <-
+      backwards_search(
+        train_data,
+        outcome = outcome,
+        reference = reference
+      )
 
-  aucs_out <- get_AUC(valid_data, out)
 
-  return(aucs_out)
+    aucs_out <- get_AUC(valid_data, out, outcome)
+
+    return(aucs_out)
 }
 
 ## Backwards search for best minimal subset of biomarkers
 
 backwards_search <- function(data, outcome, reference) {
-  X <- select(data, -Y)
-  Y <- data$Y
 
-  reference_model <-
-    SuperLearner(
-      Y = Y,
-      X = X,
-      family = binomial(),
-      SL.library = SL.library,
-      cvControl = list(V = 10, stratifyCV = TRUE)
-    )
-
-  # AUC
+  # reference (full model) AUC
 
   reference_auc <- mean(auroc(data, outcome, reference)$AUC)
 
@@ -104,11 +96,25 @@ backwards_search <- function(data, outcome, reference) {
     preds_removed <- preds_removed + 1
   }
 
-  # Fit superlearner for best subset model
+  # superlearner fit for full model
+
+  X <- select(data, -Diagnosis_combined)
+  Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
+
+  reference_model <-
+    SuperLearner(
+      Y = Y,
+      X = X,
+      family = binomial(),
+      SL.library = SL.library,
+      cvControl = list(V = 10, stratifyCV = TRUE)
+    )
+
+  # superlearner fit for best subset model
 
   best_biomarkers <- aucs[[length(aucs)]]$removed_var
 
-  X <- select(data, age_combined, female, all_of(best_biomarkers))
+  X <- select(X, age_combined, female, all_of(best_biomarkers))
 
   subset_model <-
     SuperLearner(
@@ -127,11 +133,11 @@ backwards_search <- function(data, outcome, reference) {
   ))
 }
 
-get_AUC <- function(data, out) {
+get_AUC <- function(data, out, outcome) {
 
-  get_auc <- function(data, out, model) {
-    X <- select(data, -Y)
-    Y <- data$Y
+  get_auc <- function(data, out, model, outcome) {
+    X <- select(data, -Diagnosis_combined)
+    Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
     if (model == subset_model) {
       X <- select(X, age_combined, female, all_of(out$best_biomarkers))
     }
