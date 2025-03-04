@@ -98,7 +98,10 @@ df <- df |> select(-mean_elisa)
 
 # select relevant variables
 df <-
-  df |> select(Diagnosis_combined, age_combined, female, starts_with("mean_"), Site, race_combined, ends_with("_ICC"))
+  df |> select(
+    Diagnosis_combined, age_combined, female, starts_with("mean_"),
+    Site, race_combined, ends_with("_ICC")
+  )
 
 # Truncate biomarkers at the 99th percentile
 
@@ -122,72 +125,6 @@ df <- df |> filter(!Diagnosis_combined == "Control")
 
 df <- df |> select(-Site, -race_combined, -ends_with("_ICC"))
 
-### Backwards search for best minimal subset of biomarkers
-
-backwards_search <- function(data, outcome, reference) {
-
-  # filter to outcome and reference
-
-  data <- filter(data, Diagnosis_combined %in% c(outcome, reference))
-
-  # first, fit reference model (all predictors)
-
-  Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
-
-  X <- select(data, -Diagnosis_combined)
-
-  reference_model <-
-    SuperLearner(
-      Y = Y,
-      X = X,
-      family = binomial(),
-      SL.library = SL.library,
-      cvControl = list(V = 10, stratifyCV = TRUE)
-    )
-
-  # AUC
-
-  reference_auc <- mean(auroc(data, outcome, reference)$AUC)
-
-  # start backwards search
-
-  total_preds <- length(
-    which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined"))
-  )
-
-  preds_removed <- 1
-  smallest_auc_drop <- 0
-  aucs <- list()
-
-  while (preds_removed < total_preds & smallest_auc_drop < 0.03) {
-    indices <-
-      which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined"))
-
-    get_submodel_auc <- function(i) {
-      trim <- select(data, -names(data)[i])
-      auc <- mean(auroc(trim, outcome, reference)$AUC)
-      return(tibble(removed_var = names(data)[i], auc = auc))
-    }
-
-    auc_out <- map(indices, get_submodel_auc)
-
-    aucs[[preds_removed]] <- bind_rows(auc_out)
-
-    print(aucs[[preds_removed]])
-
-    # variable to remove before next step
-
-    to_remove <- filter(aucs[[preds_removed]], auc == max(auc))$removed_var
-
-    data <- select(data, -all_of(to_remove))
-
-    smallest_auc_drop <-
-      reference_auc - filter(aucs[[preds_removed]], auc == max(auc))$auc
-
-    preds_removed <- preds_removed + 1
-  }
-
-  return(aucs)
-}
+## Cross validated biomarker subset search
 
 test <- backwards_search(df, "Alzheimer's", c("Lewy bodies", "Frontotermporal"))
