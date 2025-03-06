@@ -43,12 +43,10 @@ inflam_cdr <- function(df, diagnosis = NULL) {
     df <- df[df$Diagnosis_combined %in% diagnosis, ]
   }
   washington <- prepare(df)
-  cdr_df <- washington |>
-    filter(!is.na(mean_elisa) & !is.na(cdr))
-  mmse_df <- washington |>
-    filter(!is.na(mean_elisa) & !is.na(MMSE))
 
   get_cdr_corr <- function(marker) {
+    cdr_df <- washington |>
+      filter(!is.na(get(marker)) & !is.na(cdr))
     cdr_coef <- cdr_df |>
       lm(
         as.formula(paste0(
@@ -63,10 +61,12 @@ inflam_cdr <- function(df, diagnosis = NULL) {
       ) |>
       coef()
 
-    return(cdr_coef[[marker]])
+    return(sprintf("%.3f (n = %d)", cdr_coef[[marker]], nrow(cdr_df)))
   }
 
   get_mmse_corr <- function(marker) {
+    mmse_df <- washington |>
+      filter(!is.na(get(marker)) & !is.na(MMSE))
     mmse_coef <- mmse_df |>
       lm(
         as.formula(paste0(
@@ -81,10 +81,11 @@ inflam_cdr <- function(df, diagnosis = NULL) {
       ) |>
       coef()
 
-    return(mmse_coef[[marker]])
+    return(sprintf("%.3f (n = %d)", mmse_coef[[marker]], nrow(mmse_df)))
   }
   markers <- c(
     "mean_elisa",
+    "mean_nfl",
     "mean_ykl",
     "mean_gfap",
     "mean_ab42_ab40_ratio",
@@ -94,7 +95,7 @@ inflam_cdr <- function(df, diagnosis = NULL) {
     "mean_ptau181",
     "mean_ptau217"
   )
-  return(list(n_cdr = nrow(cdr_df), n_mmse = nrow(mmse_df), mmse = sapply(markers, get_mmse_corr), cdr = sapply(markers, get_cdr_corr)))
+  return(list(mmse = sapply(markers, get_mmse_corr), cdr = sapply(markers, get_cdr_corr)))
 }
 
 csf_corr <- function(df, diagnosis = NULL) {

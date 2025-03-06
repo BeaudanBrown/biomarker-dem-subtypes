@@ -23,7 +23,7 @@ auroc <- function(data, outcome, reference, nfolds = 5) {
     strata_ids = data$Y
   )
 
-  #plan(multicore, workers = as.numeric(Sys.getenv("N_CORES")))
+  #plan(multicore, workers = detectCores())
 
   out <-
     cross_validate(
@@ -203,7 +203,8 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
     ) +
     bayesplot::theme_default() +
     scale_color_colorblind() +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    guides(colour = guide_legend(nrow = 2))
 
   # Save the plot and return it
   ggsave(filename = paste0("plots/", title_text, ".png"),
@@ -216,12 +217,6 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
 #### VIMP ####
 
 vimp_function_par <- function(data, outcome_subtype, stratification = "") {
-  # Remove rows with NA
-  data <- drop_na(data)
-  # Create response variable
-  Y <- ifelse(data$Diagnosis_combined == outcome_subtype, 1, 0)
-  # Remove the outcome column from predictors
-  X <- select(data, -Diagnosis_combined)
   # Define output file name (be sure to clean the outcome_subtype if needed)
   outfile <- paste0(
     "vimp_",
@@ -233,22 +228,28 @@ vimp_function_par <- function(data, outcome_subtype, stratification = "") {
   if (file.exists(outfile)) {
     return(read_rds(outfile))
   }
+  # Remove rows with NA
+  data <- drop_na(data)
+  # Create response variable
+  Y <- ifelse(data$Diagnosis_combined == outcome_subtype, 1, 0)
+  # Remove the outcome column from predictors
+  X <- select(data, -Diagnosis_combined)
   # Parallelize over columns in X; note that each parallel call will then run cv_vim
-  library(future.apply)
   vimp_list <- future_lapply(seq_len(ncol(X)), function(i) {
     # Optionally: Instead of print, you could write to a log file to avoid console jumbles.
+    print("Processing predictor ", i)
     message("Processing predictor ", i)
     cv_vim(
       Y = Y,
       X = X,
       indx = i,
       type = "auc",
-      V = 10,
+      V = 5,
       run_regression = TRUE,
       SL.library = SL.library,
       sample_splitting = FALSE,
       stratified = TRUE,
-      cvControl = list(V = 10, stratifyCV = TRUE),
+      cvControl = list(V = 5, stratifyCV = TRUE),
       family = binomial()
     )
   }, future.seed = 1234)
