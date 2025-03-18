@@ -23,8 +23,6 @@ auroc <- function(data, outcome, reference, nfolds = 5) {
     strata_ids = data$Y
   )
 
-  #plan(multicore, workers = detectCores())
-
   out <-
     cross_validate(
       folds = folds,
@@ -63,7 +61,6 @@ predict_status <- function(data, nfolds) {
       cvControl = list(V = nfolds, stratifyCV = TRUE)
     )
 
-    print(fit$coef)
 
     pred_vars <- names(train_X)
 

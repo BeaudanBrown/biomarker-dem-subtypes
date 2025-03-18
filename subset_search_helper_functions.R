@@ -1,5 +1,4 @@
 ### Function for cross-validated biomarker subset identification
-
 get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
   # filter to outcome and reference
 
@@ -9,13 +8,13 @@ get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
 
   set.seed(1234)
 
+  Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
+
   folds <- make_folds(nrow(data),
     fold_fun = folds_vfold,
     V = nfolds,
-    strata_ids = data$Y
+    strata_ids = Y
   )
-
-  # plan(multicore, workers = as.numeric(Sys.getenv("N_CORES")))
 
   out <-
     cross_validate(
@@ -44,10 +43,13 @@ cv_biomarker_subset <-
         reference = reference
       )
 
+    out$ref_sub_auc <- get_ref_sub_AUC(data = valid_data,
+                                       reference_model = out$reference_model,
+                                       subset_model = out$subset_model,
+                                       best_biomarkers = out$path[[length(out$path)]]$removed_var,
+                                       outcome = outcome)
 
-    aucs_out <- get_AUC(valid_data, out, outcome)
-
-    return(aucs_out)
+    return(out)
 }
 
 ## Backwards search for best minimal subset of biomarkers
@@ -67,6 +69,8 @@ backwards_search <- function(data, outcome, reference) {
   preds_removed <- 1
   smallest_auc_drop <- 0
   aucs <- list()
+  result <- list()
+  full_data <- data
 
   while (preds_removed < total_preds & smallest_auc_drop < 0.03) {
     indices <-
@@ -82,24 +86,24 @@ backwards_search <- function(data, outcome, reference) {
 
     aucs[[preds_removed]] <- bind_rows(auc_out)
 
-    print(aucs[[preds_removed]])
-
     # variable to remove before next step
+    best_auc_var <- filter(aucs[[preds_removed]], auc == max(auc))
 
-    to_remove <- filter(aucs[[preds_removed]], auc == max(auc))$removed_var
+    to_remove <- best_auc_var$removed_var
 
     data <- select(data, -all_of(to_remove))
 
-    smallest_auc_drop <-
-      reference_auc - filter(aucs[[preds_removed]], auc == max(auc))$auc
+    result[[preds_removed]] <- list(vars = colnames(data), auc = best_auc_var)
+
+    smallest_auc_drop <- reference_auc - best_auc_var$auc
 
     preds_removed <- preds_removed + 1
   }
 
   # superlearner fit for full model
 
-  X <- select(data, -Diagnosis_combined)
-  Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
+  X <- select(full_data, -Diagnosis_combined)
+  Y <- ifelse(full_data$Diagnosis_combined == outcome, 1, 0)
 
   reference_model <-
     SuperLearner(
@@ -127,21 +131,21 @@ backwards_search <- function(data, outcome, reference) {
 
   # return full model superlearner, subset model superlearner, and best subset
   return(list(
-    best_biomarkers = best_biomarkers,
+    path = aucs,
     reference_model = reference_model,
     subset_model = subset_model
   ))
 }
 
-get_AUC <- function(data, out, outcome) {
+get_ref_sub_AUC <- function(data, reference_model, subset_model, best_biomarkers, outcome) {
+  all_markers <- names(select(data, -Diagnosis_combined))
+  best_biomarkers <- c("age_combined", "female", best_biomarkers)
 
-  get_auc <- function(data, out, model, outcome) {
-    X <- select(data, -Diagnosis_combined)
+  get_auc <- function(data, predictors, model) {
+    X <- select(data, all_of(predictors))
     Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
-    if (model == subset_model) {
-      X <- select(X, age_combined, female, all_of(out$best_biomarkers))
-    }
-    preds <- as.numeric(predict(out$model, newdata = X)$pred)
+    data <- select(data, -Diagnosis_combined)
+    preds <- as.numeric(predict(model, newdata = X)$pred)
     roc_data <- tibble(true_labels = Y, predicted_probs = preds)
     # Get unique thresholds (predicted probabilities)
     thresholds <- seq(0, 1, length.out = 100)
@@ -166,7 +170,7 @@ get_AUC <- function(data, out, outcome) {
   reference_auc <-
     get_auc(
       data,
-      out,
+      all_markers,
       reference_model)
 
   # subset model AUC
@@ -174,12 +178,11 @@ get_AUC <- function(data, out, outcome) {
   subset_auc <-
     get_auc(
       data,
-      out,
+      best_biomarkers,
       subset_model)
 
   return(list(
     reference_auc = reference_auc,
-    subset_auc = subset_auc,
-    best_biomarkers = out$best_biomarkers
+    subset_auc = subset_auc
   ))
 }
