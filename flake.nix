@@ -56,6 +56,9 @@
               corrr
               quarto
               arm
+              cowplot
+              nnet
+              cvAUC
             ]);
             my-quarto = pkgs.quarto.override {
               extraRPackages = rPkgs;

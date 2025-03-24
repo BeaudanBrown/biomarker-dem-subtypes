@@ -1,4 +1,45 @@
 ### Function for cross-validated biomarker subset identification
+
+get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
+  # filter to outcome and reference
+
+  data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
+
+  data <- drop_na(data)
+
+  set.seed(1234)
+
+  Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
+
+  folds <- make_folds(nrow(data),
+    fold_fun = folds_vfold,
+    V = nfolds,
+    strata_ids = Y
+  )
+
+  for (i in 1:length(folds)) {
+    path <- stuff$path[[i]]
+    subset_model <- stuff$subset_model[[i]]
+    reference_model <- stuff$reference_model[[i]]
+
+    reference_auc <- mean(auroc(data, outcome, reference)$AUC)
+
+    train_auc <- get_ref_sub_AUC(data = data[folds[[i]]$training_set, ],
+      reference_model = reference_model,
+      subset_model = subset_model,
+      best_biomarkers = path[[length(path)]]$removed_var,
+      outcome = outcome)
+    valid_auc <- get_ref_sub_AUC(data = data[folds[[i]]$validation_set, ],
+      reference_model = reference_model,
+      subset_model = subset_model,
+      best_biomarkers = path[[length(path)]]$removed_var,
+      outcome = outcome)
+    print(mean(train_auc$reference_auc$AUC))
+    print(mean(valid_auc$reference_auc$AUC))
+    print("~~~~~~~~~~")
+  }
+}
+
 get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
   # filter to outcome and reference
 
@@ -52,9 +93,22 @@ cv_biomarker_subset <-
     return(out)
 }
 
+marker_subset_full <- function(data, outcome, reference) {
+  set.seed(1234)
+  data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
+  out <-
+    backwards_search(
+      data,
+      outcome = outcome,
+      reference = reference,
+      threshold = 1
+    )
+  return(out)
+}
+
 ## Backwards search for best minimal subset of biomarkers
 
-backwards_search <- function(data, outcome, reference) {
+backwards_search <- function(data, outcome, reference, threshold = 0.03) {
 
   # reference (full model) AUC
 
@@ -62,9 +116,10 @@ backwards_search <- function(data, outcome, reference) {
 
   # start backwards search
 
-  total_preds <- length(
-    which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined"))
-  )
+  total_preds <- data |>
+    select(starts_with("mean")) |>
+    names() |>
+    length()
 
   preds_removed <- 1
   smallest_auc_drop <- 0
@@ -72,7 +127,7 @@ backwards_search <- function(data, outcome, reference) {
   result <- list()
   full_data <- data
 
-  while (preds_removed < total_preds & smallest_auc_drop < 0.03) {
+  while (preds_removed < total_preds && smallest_auc_drop < threshold) {
     indices <-
       which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined"))
 
@@ -118,7 +173,10 @@ backwards_search <- function(data, outcome, reference) {
 
   best_biomarkers <- aucs[[length(aucs)]]$removed_var
 
-  X <- select(X, age_combined, female, all_of(best_biomarkers))
+  covars <- data |>
+    select(-starts_with("mean"), -Diagnosis_combined) |>
+    names()
+  X <- select(X, all_of(covars), all_of(best_biomarkers))
 
   subset_model <-
     SuperLearner(
@@ -132,6 +190,7 @@ backwards_search <- function(data, outcome, reference) {
   # return full model superlearner, subset model superlearner, and best subset
   return(list(
     path = aucs,
+    reference_auc = reference_auc,
     reference_model = reference_model,
     subset_model = subset_model
   ))
