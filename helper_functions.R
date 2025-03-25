@@ -31,7 +31,7 @@ auroc <- function(data, outcome, reference, nfolds = 5) {
       nfolds = nfolds
     )
 
-  return(out)
+  return(list(aucs = out))
 }
 
 
@@ -43,7 +43,7 @@ cv_auroc <- function(fold, data, nfolds) {
 
   roc_out <- get_roc(valid_data, out)
 
-  return(roc_out)
+  return(list(results = roc_out))
 }
 
 predict_status <- function(data, nfolds) {
@@ -57,7 +57,7 @@ predict_status <- function(data, nfolds) {
       Y = train_Y,
       X = train_X,
       family = binomial(),
-      SL.library = SL.library,
+      SL.library = ifelse(ncol(train_X) == 1, univariate_library, SL.library),
       cvControl = list(V = nfolds, stratifyCV = TRUE)
     )
 
@@ -84,6 +84,8 @@ get_roc <- function(data, out) {
   roc_data$AUC <- as.numeric(roc(valid_Y, preds)$auc)
 
   return(list(
+    labels = valid_Y,
+    preds = preds,
     TPR = roc_data$TPR,
     FPR = roc_data$FPR,
     AUC = roc_data$AUC

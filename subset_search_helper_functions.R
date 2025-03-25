@@ -1,10 +1,10 @@
+library(cvAUC)
 ### Function for cross-validated biomarker subset identification
 
 get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
   # filter to outcome and reference
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
-
   data <- drop_na(data)
 
   set.seed(1234)
@@ -17,7 +17,7 @@ get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
     strata_ids = Y
   )
 
-  for (i in 1:length(folds)) {
+  for (i in seq_along(folds)) {
     path <- stuff$path[[i]]
     subset_model <- stuff$subset_model[[i]]
     reference_model <- stuff$reference_model[[i]]
@@ -112,7 +112,10 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
 
   # reference (full model) AUC
 
-  reference_auc <- mean(auroc(data, outcome, reference)$AUC)
+  auc_results <- auroc(data, outcome, reference)
+  preds <- lapply(auc_results$aucs$results, function(a) a$preds)
+  labels <- lapply(auc_results$aucs$results, function(a) a$labels)
+  reference_auc <- ci.cvAUC(preds, labels)
 
   # start backwards search
 
@@ -127,14 +130,25 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
   result <- list()
   full_data <- data
 
-  while (preds_removed < total_preds && smallest_auc_drop < threshold) {
+  while (preds_removed <= total_preds && smallest_auc_drop < threshold) {
     indices <-
       which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined"))
 
     get_submodel_auc <- function(i) {
       trim <- select(data, -names(data)[i])
-      auc <- mean(auroc(trim, outcome, reference)$AUC)
-      return(tibble(removed_var = names(data)[i], auc = auc))
+      # auc <- mean(auroc(trim, outcome, reference)$AUC)
+      auc_results <- auroc(trim, outcome, reference)
+      preds <- lapply(auc_results$aucs$results, function(a) a$preds)
+      labels <- lapply(auc_results$aucs$results, function(a) a$labels)
+      auc <- ci.cvAUC(preds, labels)
+      cil <- auc$ci[[1]]
+      ciu <- auc$ci[[2]]
+      return(tibble(
+        removed_var = names(data)[i],
+        auc = auc$cvAUC,
+        cil = cil,
+        ciu = ciu
+      ))
     }
 
     auc_out <- map(indices, get_submodel_auc)
@@ -150,7 +164,7 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
 
     result[[preds_removed]] <- list(vars = colnames(data), auc = best_auc_var)
 
-    smallest_auc_drop <- reference_auc - best_auc_var$auc
+    smallest_auc_drop <- reference_auc$cvAUC - best_auc_var$auc
 
     preds_removed <- preds_removed + 1
   }

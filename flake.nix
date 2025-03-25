@@ -59,6 +59,10 @@
               cowplot
               nnet
               cvAUC
+              gbm
+              e1071
+              class
+              patchwork
             ]);
             my-quarto = pkgs.quarto.override {
               extraRPackages = rPkgs;

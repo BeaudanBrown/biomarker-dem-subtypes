@@ -1,3 +1,11 @@
+univariate_library <- c(
+  "SL.glm",
+  "SL.firth",
+  "SL.gam2",
+  "SL.earth",
+  "SL.bayesglm"
+)
+
 SL.library <- c(
   "SL.glm",
   "SL.firth",

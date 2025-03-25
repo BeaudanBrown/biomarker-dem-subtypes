@@ -15,6 +15,8 @@ library(future.apply)
 library(parallel)
 library(logistf)
 library(knitr)
+library(cvAUC)
+library(patchwork)
 source("learners.R")
 source("helper_functions.R")
 source("subset_search_helper_functions.R")
@@ -22,8 +24,9 @@ source("subset_search_helper_functions.R")
 dotenv::load_dot_env()
 data_dir <- Sys.getenv("DATA_DIR")
 plan(multicore, workers = detectCores())
+# plan(sequential)
 
-plot_auc_steps <- function(data, outcome) {
+plot_auc_steps <- function(data, outcome, extra_title = "") {
   library(ggplot2)
   library(dplyr)
 
@@ -41,20 +44,14 @@ plot_auc_steps <- function(data, outcome) {
 
   # Create the plot
   p <- ggplot(data, aes(x = step, y = auc)) +
-    # Add reference line
-    geom_hline(yintercept = ref_auc, linetype = "dashed", color = "red", size = 0.8) +
-    # Add annotation for reference line
-    annotate("text", x = round(max(data$step) / 2), y = ref_auc - 0.002,
-             label = paste("Threshold:", round(ref_auc, 3)),
-             hjust = 1, color = "red", size = 3.5) +
     geom_line(size = 1, color = "steelblue") +
-    geom_point(size = 3, color = "darkblue") +
+    geom_pointrange(aes(ymin = cil, ymax = ciu), color = "darkblue") +
     labs(
-      title = paste0(outcome, " AUC Marker Subset Path"),
+      title = paste0(outcome, " AUC Marker Subset Path", extra_title),
       x = "Markers Remaining",
       y = "AUC"
     ) +
-    theme_minimal() +
+    theme_bw() +
     theme(
       plot.title = element_text(size = 14, face = "bold"),
       axis.title = element_text(size = 12),
@@ -62,14 +59,12 @@ plot_auc_steps <- function(data, outcome) {
       panel.grid.minor = element_blank(),
       legend.position = "none"
     ) +
-    # Use the removed_var values as the x-axis labels
     scale_x_continuous(
       breaks = data$step,
       labels = labels,
       minor_breaks = NULL
     ) +
-    # Adjust y-axis to ensure the reference line is visible
-    scale_y_continuous(limits = c(min(c(data$auc, ref_auc)) * 0.98, max(data$auc) * 1.02))
+    scale_y_continuous(limits = c(0.5, 1), breaks = c(0.5, 0.6, 0.7, 0.8, 0.9, 1))
 
   return(p)
 }
@@ -117,7 +112,12 @@ build_path <- function(full_path, ref_auc) {
     map2_dfr(seq_along(.), function(tibble, index) {
       tibble %>% mutate(step = index)
     }) |>
-    add_row(removed_var = "Full", auc = ref_auc, step = 0) |>
+    add_row(
+      removed_var = "Full",
+      auc = ref_auc$cvAUC,
+      cil = ref_auc$ci[[1]],
+      ciu = ref_auc$ci[[2]],
+      step = 0) |>
     arrange(step) |>
     mutate(
       raw_removed_var = removed_var,
@@ -223,66 +223,115 @@ read_search_data <- function() {
 
 df <- read_search_data()
 
-# exclude those missing biomarkers
+# ad_full <- marker_subset_full(
+#   df,
+#   "Alzheimer's",
+#   c("Lewy bodies", "Frontotemporal")
+# )
+# lbd_full <- marker_subset_full(
+#   df,
+#   "Lewy bodies",
+#   c("Alzheimer's", "Frontotemporal")
+# )
+# ftd_full <- marker_subset_full(
+#   df,
+#   "Frontotemporal",
+#   c("Alzheimer's", "Lewy bodies")
+# )
 
-df <- df |> filter(!is.na(mean_ab40) & !is.na(mean_ykl))
+ad_full <- read_rds("AD_full_ci.rds")
+ftd_full <- read_rds("FTD_full_ci.rds")
+lbd_full <- read_rds("LBD_full.rds")
 
-# code diagnosis as factor and set control as reference
+ad_women_path <- build_path(ad_women$path, ad_women$reference_auc)
+ad_women_plot <- plot_auc_steps(ad_women_path, "Alzheimer's")
 
-df <- df |>
-  mutate(Diagnosis_combined = as.factor(fct_recode(Diagnosis_combined,
-    "Alzheimer's" = "AD", "Control" = "CO", "Lewy bodies" = "DLB",
-    "Frontotermporal" = "FTD"
-  ))) |>
-  mutate(Diagnosis_combined = fct_relevel(Diagnosis_combined, "Control"))
+lbd_path <- build_path(lbd_full$path, lbd_full$reference_auc)
+lbd_plot <- plot_auc_steps(lbd_path, "Lewy bodies")
 
-# set sex to factor
+ftd_path <- build_path(ftd_full$path, ftd_full$reference_auc)
+ftd_plot <- plot_auc_steps(ftd_path, "Frontotemporal")
 
-df$sex_combined <- as.factor(df$sex_combined)
-df$female <- ifelse(df$sex_combined == "Female", 1, 0)
+plot_grid(ad_plot, lbd_plot, ftd_plot, ncol = 3)
 
-# Add ab42 to ab40 ratio
 
-df$mean_ab42_ab40_ratio <- df$mean_ab42 / df$mean_ab40
+ad_path <- build_path(ad_full$path, ad_full$reference_auc)
+ad_plot <- plot_auc_steps(ad_path, "Alzheimer's")
 
-# remove cd14
+ad_plot + ftd_plot + lbd_plot
 
-df <- df |> select(-mean_elisa)
+men_and_women <- function(df) {
+  men <- df |>
+    filter(female == 0) |>
+    select(-female)
+  women <- df |>
+    filter(female == 1) |>
+    select(-female)
 
-# select relevant variables
-df <-
-  df |> select(
-    Diagnosis_combined, age_combined, female, starts_with("mean_"),
-    Site, race_combined, ends_with("_ICC")
+  ad_women <- marker_subset_full(
+    women,
+    "Alzheimer's",
+    c("Lewy bodies", "Frontotemporal")
   )
+  ad_women_path <- build_path(ad_women$path, ad_women$reference_auc)
+  ad_women_plot <- plot_auc_steps(ad_women_path, "Alzheimer's", " - Women")
 
-# Truncate biomarkers at the 99th percentile
+  ad_men <- marker_subset_full(
+    men,
+    "Alzheimer's",
+    c("Lewy bodies", "Frontotemporal")
+  )
+  ad_men_path <- build_path(ad_men$path, ad_men$reference_auc)
+  ad_men_plot <- plot_auc_steps(ad_men_path, "Alzheimer's", " - Men")
 
-df <- df |>
-  mutate(across(starts_with("mean_"),
-~ ifelse(.x > quantile(.x, 0.99), quantile(.x, 0.99), .x)))
+  ad_men_plot + ad_women_plot
 
-df <- df |>
-  mutate(across(starts_with("mean_"),
-~ ifelse(.x < quantile(.x, 0.01), quantile(.x, 0.01), .x)))
+  ftd_women <- marker_subset_full(
+    women,
+    "Frontotemporal",
+    c("Lewy bodies", "Alzheimer's")
+  )
+  ftd_women_path <- build_path(ftd_women$path, ftd_women$reference_auc)
+  ftd_women_plot <- plot_auc_steps(ftd_women_path, "Frontotemporal", " - Women")
 
-# remove unneeded vars
+  ftd_men <- marker_subset_full(
+    men,
+    "Frontotemporal",
+    c("Lewy bodies", "Alzheimer's")
+  )
+  ftd_men_path <- build_path(ftd_men$path, ftd_men$reference_auc)
+  ftd_men_plot <- plot_auc_steps(ftd_men_path, "Frontotemporal", " - Men")
 
-df <- df |> select(-mean_ab42_ab40_ratio)
+  ftd_men_plot + ftd_women_plot
 
-# remove controls
+  women[women$Diagnosis_combined == "Frontotemporal", ]
+  men[men$Diagnosis_combined == "Frontotemporal", ]
 
-df <- df |> filter(!Diagnosis_combined == "Control")
 
-# remove extras
+  lbd_women <- marker_subset_full(
+    women,
+    "Lewy bodies",
+    c("Frontotemporal", "Alzheimer's")
+  )
+  lbd_women_path <- build_path(lbd_women$path, lbd_women$reference_auc)
+  lbd_women_plot <- plot_auc_steps(lbd_women_path, "Lewy bodies", " - Women")
 
-df <- df |> select(-Site, -race_combined, -ends_with("_ICC"))
+  lbd_men <- marker_subset_full(
+    men,
+    "Lewy bodies",
+    c("Frontotemporal", "Alzheimer's")
+  )
+  lbd_men_path <- build_path(lbd_men$path, lbd_men$reference_auc)
+  lbd_men_plot <- plot_auc_steps(lbd_men_path, "Lewy bodies", " - Men")
 
-## Cross validated biomarker subset search
+  lbd_men_plot + lbd_women_plot
 
-test <- get_biomarker_subset(
-  df,
-  "Alzheimer's",
-  c("Lewy bodies", "Frontotermporal"),
-  nfolds = 5
-)
+  lbd_men <- marker_subset_full(
+    men,
+    "Lewy bodies",
+    c("Alzheimer's", "Frontotemporal")
+  )
+  write_rds(lbd_men, "LBD_men.rds")
+  lbd_men_path <- build_path(lbd_men$path, lbd_men$reference_auc)
+  lbd_men_plot <- plot_auc_steps(lbd_men_path, "Lewy bodies")
+}

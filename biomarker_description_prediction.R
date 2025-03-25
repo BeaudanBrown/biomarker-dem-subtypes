@@ -24,7 +24,6 @@ library(bayesplot)
 library(knitr)
 
 dotenv::load_dot_env()
-plan(multicore, workers = detectCores())
 
 # read data
 
