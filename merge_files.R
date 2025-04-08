@@ -536,7 +536,6 @@ case <- case |> select(-DrawDate, -DOB, -sex)
 joined <- full_join(joined, case, by = "PA_ID")
 
 ### Add in Texas case & demo data
-
 new_cases <-
   read_excel(file.path(data_dir, Sys.getenv("TEXAL_PRELIM_FILE")))
 
@@ -576,9 +575,20 @@ new_cases <-
 
 new_cases$Sample_Barcode <- as.character(new_cases$Sample_Barcode)
 
+### Latest CD14
+cd14 <- read_excel(file.path(data_dir, Sys.getenv("ADDF_CD14_FILE"))) |>
+  rename(
+    Sample_Barcode = "Sample ID",
+    mean_elisa = "Mean Concentration",
+    cv_percent = "%CV",
+  ) |>
+  select(Sample_Barcode, mean_elisa)
+
+new_cases <- full_join(new_cases, cd14, by = "Sample_Barcode")
+
 ### Join Texas and Washington data
 
-joined <- full_join(joined, new_cases, by = "Sample_Barcode")
+joined <- full_join(joined |> select(-mean_elisa), new_cases, by = "Sample_Barcode")
 
 # amalgamate age and sex variables
 

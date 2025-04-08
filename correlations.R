@@ -61,7 +61,7 @@ inflam_cdr <- function(df, diagnosis = NULL) {
       ) |>
       coef()
 
-    return(sprintf("%.3f (n = %d)", cdr_coef[[marker]], nrow(cdr_df)))
+    return(sprintf("%.3f (%d)", cdr_coef[[marker]], nrow(cdr_df)))
   }
 
   get_mmse_corr <- function(marker) {
@@ -81,7 +81,7 @@ inflam_cdr <- function(df, diagnosis = NULL) {
       ) |>
       coef()
 
-    return(sprintf("%.3f (n = %d)", mmse_coef[[marker]], nrow(mmse_df)))
+    return(sprintf("%.3f (%d)", mmse_coef[[marker]], nrow(mmse_df)))
   }
   markers <- c(
     "mean_elisa",
