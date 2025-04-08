@@ -3,6 +3,8 @@ title: "ROCs and correlations"
 format:
   html:
     embed-resources: true
+    grid:
+      body-width: 1800px
 ---
 
 ```{r setup, include=FALSE}
@@ -10,13 +12,16 @@ format:
 knitr::opts_chunk$set(
   echo = FALSE,
   message = FALSE,
-  warning = FALSE
+  warning = FALSE,
+  fig.align = "center",
+  out.width = "100%"
 )
 ```
 
 ```{r}
 #| include: false
 source("biomarker_description_prediction.R")
+source("biomarker_subset_search.R")
 source("correlations.R")
 library(future.apply)
 library(parallel)
@@ -56,17 +61,17 @@ outcome_label_map <- c(
 ```
 
 ::: {.panel-tabset}
-## Subtypes vs other dementias
+## Subtypes vs Other Dem
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-# roc_results$AD_vs_Others[["roc_plot"]]
-# roc_results$LBD_vs_Others[["roc_plot"]]
-# roc_results$FTD_vs_Others[["roc_plot"]]
 plot_roc_combined(roc_list = roc_combined,
                   title_text = "ROC curves for dementia subtypes",
                   label_map = outcome_label_map)
 ```
+:::
 
 ## Subtypes by sex
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 #| include: false
 sex_rec_results <- get_all_sex_rocs(roc_df)
@@ -115,12 +120,11 @@ if (require(knitr)) {
         col.names = c("Diagnosis", "Men N (%)", "Women N (%)", "Total"))
 }
 ```
+:::
 
-## Subtypes vs control
+## Subtypes vs Control
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-# roc_results$AD_vs_Control[["roc_plot"]]
-# roc_results$FTD_vs_Control[["roc_plot"]]
-# roc_results$LBD_vs_Control[["roc_plot"]]
 roc_combined <- list(
   AD = roc_results$AD_vs_Control[["roc_result"]],
   LBD = roc_results$LBD_vs_Control[["roc_result"]],
@@ -135,12 +139,14 @@ plot_roc_combined(roc_list = roc_combined,
                   title_text = "ROC curves for dementia subtypes",
                   label_map = outcome_label_map)
 ```
+:::
 
 ## LBD vs FTD
-
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 roc_results$LBD_vs_FTD[["roc_plot"]]
 ```
+:::
 
 ```{r}
 #| include: false
@@ -159,6 +165,7 @@ print_pet_table <- function(pet_output, caption) {
 ```
 
 ## MMSE
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 whole_inflam <- inflam_cdr(df)
 Any_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
@@ -167,11 +174,11 @@ FTD_inflam <- inflam_cdr(df, diagnosis = c("Frontotermporal"))
 LBD_inflam <- inflam_cdr(df, diagnosis = c("Lewy bodies"))
 
 mmse_list <- list(
-  "All" = as.data.frame(whole_inflam$mmse),
-  "Any Dem" = as.data.frame(Any_inflam$mmse),
-  "AD" = as.data.frame(AD_inflam$mmse),
-  "LBD" = as.data.frame(LBD_inflam$mmse),
-  "FTD" = as.data.frame(FTD_inflam$mmse)
+  "All (n)" = as.data.frame(whole_inflam$mmse),
+  "Any Dem (n)" = as.data.frame(Any_inflam$mmse),
+  "AD (n)" = as.data.frame(AD_inflam$mmse),
+  "LBD (n)" = as.data.frame(LBD_inflam$mmse),
+  "FTD (n)" = as.data.frame(FTD_inflam$mmse)
 )
 
 mmse <- bind_cols(mmse_list) |>
@@ -227,10 +234,11 @@ for (marker in markers) {
     xlab(marker) +
     ggtitle(paste0(marker, " vs MMSE (not adjusted)")))
 }
-
 ```
+:::
 
 ## CDR
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 cdr_list <- list(
   "All" = as.data.frame(whole_inflam$cdr),
@@ -282,35 +290,11 @@ for (marker in markers) {
     xlab(marker) +
     ggtitle(paste0(marker, " vs CDR (not adjusted)")))
 }
-
-# for (marker in markers) {
-#   show(df |>
-#     rename(
-#            "CD14" = "mean_elisa",
-#            "NfL" = "mean_nfl",
-#            "YKL-40" = "mean_ykl",
-#            "GFAP" = "mean_gfap",
-#            "AB42/AB40 Ratio" = "mean_ab42_ab40_ratio",
-#            "AB40" = "mean_ab40",
-#            "AB42" = "mean_ab42",
-#            "TDP-43" = "mean_tdp",
-#            "pTau-181" = "mean_ptau181",
-#            "pTau-217" = "mean_ptau217"
-#            ) |>
-#     mutate(value = standardise(!!sym(marker)),
-#            cdr = standardise(cdr)) |>
-#     filter(!is.na(!!sym(marker)) & !is.na(cdr)) |>
-#     filter(Site == "Washington") |>
-#     ggplot(aes(x = value, y = cdr, color = Diagnosis_combined)) +
-#     geom_point() +
-#     geom_smooth(method = "lm", se = FALSE) +
-#     labs(color = "Diagnosis") +
-#     xlab(marker) +
-#     ggtitle(paste0(marker, " vs CDR (not adjusted)")))
-# }
 ```
+:::
 
 ## CSF
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 cohort_info <- list(
   "All" = NULL,
@@ -346,8 +330,10 @@ df |>
     y = "CSF AB-Ratio"
   )
 ```
+:::
 
 ## PET / PTAU217
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 whole_pet <- pet_corr(df)
 Any_pet <- pet_corr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
@@ -414,10 +400,95 @@ df |>
     y = "Centiloid"
   )
 ```
+:::
 
-## VImp Men
+## VImp Full
+::: {.my-table-wrapper style="width:60%; margin:auto;"}
 #### * indicates p < 0.05
+```{r}
+#| results: asis
+dem_names <- c(
+               "Alzheimer's",
+               "Frontotermporal",
+               "Lewy bodies"
+)
 
+vimp_data <- read_data() |>
+  filter(Diagnosis_combined != "Control") |>
+  select(
+         Diagnosis_combined,
+         age_combined,
+         mean_elisa,
+         mean_nfl,
+         mean_ykl,
+         mean_gfap,
+         mean_ab40,
+         mean_ab42,
+         mean_tdp,
+         mean_ptau181,
+         mean_ptau217
+         ) |>
+  drop_na()
+
+vimp_full <- lapply(dem_names,
+                   function(outcome) {
+                     vimp_function_par(data = vimp_data,
+                                       outcome_subtype = outcome)$mat |>
+                     select(c(s, est, test))
+
+                   }) |>
+  setNames(dem_names)
+
+preds <- vimp_data |>
+  select(-Diagnosis_combined) |>
+  names()
+
+for (dem_name in dem_names) {
+  show(kable(
+        cbind(preds[as.numeric(vimp_full[[dem_name]]$s)],
+              vimp_full[[dem_name]]$est,
+              vimp_full[[dem_name]]$test) |>
+        as_tibble() |>
+        setNames(c(
+                   "var_name",
+                   "imp",
+                   "test"
+                   )) |>
+        mutate(imp = round(as.numeric(imp), 3)) |>
+        mutate(
+          imp = paste0(imp, ifelse(test, "*", ""))
+        ) |>
+        select(-test) |>
+        mutate(var_name = case_when(
+                              var_name == "mean_elisa" ~ "CD14",
+                              var_name == "mean_nfl" ~ "NfL",
+                              var_name == "mean_ykl" ~ "YKL-40",
+                              var_name == "mean_gfap" ~ "GFAP",
+                              var_name == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+                              var_name == "mean_ab40" ~ "AB40",
+                              var_name == "mean_ab42" ~ "AB42",
+                              var_name == "mean_tdp" ~ "TDP-43",
+                              var_name == "mean_ptau181" ~ "pTau-181",
+                              var_name == "mean_ptau217" ~ "pTau-217",
+                              TRUE ~ var_name
+                              )),
+        col.names = c("Predictor", "Importance"),
+        caption = paste0("VImp for ",
+                         dem_name,
+                         " vs Other Dem",
+                         " (n = ",
+                         nrow(filter(vimp_data, Diagnosis_combined == dem_name)),
+                         ")")
+  ))
+}
+```
+:::
+
+## VImp By Sex
+::: {.my-table-wrapper style="width:60%; margin:auto;"}
+#### * indicates p < 0.05
+:::: {.columns}
+::: {.column width="50%" padding="10%"}
 ```{r}
 #| results: asis
 dem_names <- c(
@@ -496,9 +567,9 @@ for (dem_name in dem_names) {
   ))
 }
 ```
+:::
 
-## VImp Women
-#### * indicates p < 0.05
+::: {.column width="50%"}
 ```{r}
 #| results: asis
 vimp_data_women <- read_data() |>
@@ -565,5 +636,83 @@ for (dem_name in dem_names) {
                          ")")
   ))
 }
+```
+:::
+::::
+:::
+
+```{r}
+#| include: false
+df <- read_search_data()
+
+ad_n <- nrow(df[df$Diagnosis_combined == "Alzheimer's", ])
+ad_full <- read_rds("results/ad_full.rds")
+ad_path <- build_path(ad_full$path, ad_full$reference_auc)
+ad_plot <- plot_auc_steps(ad_path, "Alzheimer's", paste0(" - n = ", ad_n))
+
+ftd_n <- nrow(df[df$Diagnosis_combined == "Frontotemporal", ])
+ftd_full <- read_rds("results/ftd_full.rds")
+ftd_path <- build_path(ftd_full$path, ftd_full$reference_auc)
+ftd_plot <- plot_auc_steps(ftd_path, "Frontotemporal", paste0(" - n = ", ftd_n))
+
+lbd_n <- nrow(df[df$Diagnosis_combined == "Lewy bodies", ])
+lbd_full <- read_rds("results/lbd_full.rds")
+lbd_path <- build_path(lbd_full$path, lbd_full$reference_auc)
+lbd_plot <- plot_auc_steps(lbd_path, "Lewy bodies", paste0(" - n = ", lbd_n))
+
+  men <- df |>
+    filter(female == 0) |>
+    select(-female)
+  women <- df |>
+    filter(female == 1) |>
+    select(-female)
+
+```
+
+## Subset Full
+```{r, fig.align="center", out.width="80%"}
+ad_plot
+ftd_plot
+lbd_plot
+```
+
+```{r}
+#| include: false
+ad_men_n <- nrow(df[df$female == 0 & df$Diagnosis_combined == "Alzheimer's", ])
+ad_men <- read_rds("results/ad_men.rds")
+ad_men_path <- build_path(ad_men$path, ad_men$reference_auc)
+ad_men_plot <- plot_auc_steps(ad_men_path, "Alzheimer's", paste0(" - Men, n = ", ad_men_n))
+
+ad_women_n <- nrow(df[df$female == 1 & df$Diagnosis_combined == "Alzheimer's", ])
+ad_women <- read_rds("results/ad_women.rds")
+ad_women_path <- build_path(ad_women$path, ad_women$reference_auc)
+ad_women_plot <- plot_auc_steps(ad_women_path, "Alzheimer's", paste0(" - Women, n = ", ad_women_n))
+
+ftd_men_n <- nrow(df[df$female == 0 & df$Diagnosis_combined == "Frontotemporal", ])
+ftd_men <- read_rds("results/ftd_men.rds")
+ftd_men_path <- build_path(ftd_men$path, ftd_men$reference_auc)
+ftd_men_plot <- plot_auc_steps(ftd_men_path, "Frontotemporal", paste0(" - Men, n = ", ftd_men_n))
+
+ftd_women_n <- nrow(df[df$female == 1 & df$Diagnosis_combined == "Frontotemporal", ])
+ftd_women <- read_rds("results/ftd_women.rds")
+ftd_women_path <- build_path(ftd_women$path, ftd_women$reference_auc)
+ftd_women_plot <- plot_auc_steps(ftd_women_path, "Frontotemporal", paste0(" - Women, n = ", ftd_women_n))
+
+lbd_men_n <- nrow(df[df$female == 0 & df$Diagnosis_combined == "Lewy bodies", ])
+lbd_men <- read_rds("results/lbd_men.rds")
+lbd_men_path <- build_path(lbd_men$path, lbd_men$reference_auc)
+lbd_men_plot <- plot_auc_steps(lbd_men_path, "Lewy bodies", paste0(" - Men, n = ", lbd_men_n))
+
+lbd_women_n <- nrow(df[df$female == 1 & df$Diagnosis_combined == "Lewy bodies", ])
+lbd_women <- read_rds("results/lbd_women.rds")
+lbd_women_path <- build_path(lbd_women$path, lbd_women$reference_auc)
+lbd_women_plot <- plot_auc_steps(lbd_women_path, "Lewy bodies", paste0(" - Women, n = ", lbd_women_n))
+```
+
+## Subset By Sex
+```{r, fig.align="center", out.width="100%"}
+ad_men_plot + ad_women_plot
+ftd_men_plot + ftd_women_plot
+lbd_men_plot + lbd_women_plot
 ```
 :::
