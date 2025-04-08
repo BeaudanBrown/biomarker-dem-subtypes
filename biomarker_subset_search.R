@@ -33,12 +33,10 @@ plot_auc_steps <- function(data, outcome, extra_title = "") {
   # Order by step
   data <- data %>% arrange(step)
 
-  # Get the reference AUC value (step 0 minus 0.03)
-  ref_auc <- data %>%
-    filter(step == 0) %>%
-    pull(auc) - 0.03
-
   labels <- map(data$model_vars, function(vars) {
+    vars <- lapply(vars, function(v) {
+      ifelse(is.na(v), "Age\nSex", v)
+    })
     return(paste(vars, collapse = "\n"))
   })
 
@@ -47,13 +45,13 @@ plot_auc_steps <- function(data, outcome, extra_title = "") {
     geom_line(size = 1, color = "steelblue") +
     geom_pointrange(aes(ymin = cil, ymax = ciu), color = "darkblue") +
     labs(
-      title = paste0(outcome, " AUC Marker Subset Path", extra_title),
+      title = paste0(outcome, " Marker Path", extra_title),
       x = "Markers Remaining",
       y = "AUC"
     ) +
     theme_bw() +
     theme(
-      plot.title = element_text(size = 14, face = "bold"),
+      plot.title = element_text(size = 12, face = "bold"),
       axis.title = element_text(size = 12),
       axis.text = element_text(size = 10),
       panel.grid.minor = element_blank(),
@@ -71,6 +69,7 @@ plot_auc_steps <- function(data, outcome, extra_title = "") {
 
 build_path <- function(full_path, ref_auc) {
   all_vars <- c(
+    "mean_elisa",
     "mean_nfl",
     "mean_ykl",
     "mean_gfap",
@@ -82,6 +81,7 @@ build_path <- function(full_path, ref_auc) {
   )
   # Create a named vector for variable mapping
   var_mapping <- c(
+    "mean_elisa" = "CD14",
     "mean_nfl" = "NfL",
     "mean_ykl" = "YKL-40",
     "mean_gfap" = "GFAP",
@@ -140,7 +140,7 @@ build_path <- function(full_path, ref_auc) {
 }
 
 read_search_data <- function() {
-  df <- read_csv(file.path(data_dir, "merged_data/merged_all_vars_11_02_2025.csv"))
+  df <- read_csv(file.path(data_dir, Sys.getenv("MERGED_OUTPUT_FILE")))
 
   # Merge diagnosis variables between Texas and Washington data
   df <-
@@ -219,6 +219,7 @@ read_search_data <- function() {
 
   # remove controls
   df <- df |> filter(!Diagnosis_combined == "Control")
+  return(df)
 }
 
 df <- read_search_data()
