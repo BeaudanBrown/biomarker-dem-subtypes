@@ -1,4 +1,4 @@
-library(data.table)
+## Functions for correlations
 
 standardise <- function(x) {
   return((x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE))

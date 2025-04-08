@@ -9,6 +9,7 @@
         {
         devShells.default = pkgs.mkShell {
           env.R_LIBS_USER="./.Rlib";
+          buildInputs = [ pkgs.bashInteractive ];
           packages = with pkgs;
             [
               R
@@ -51,6 +52,8 @@
               e1071
               class
               patchwork
+              targets
+              usethis
             ]);
         };
       }

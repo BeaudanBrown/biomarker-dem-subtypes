@@ -1,37 +1,9 @@
 ## Biomarker descriptions and predicting case status
 
-library(tidyverse)
-library(SuperLearner)
-library(gtsummary)
-library(ggthemes)
-library(vimp)
-library(xgboost)
-library(glmnet)
-library(ranger)
-library(randomForest)
-library(earth)
-library(gam)
-library(pROC)
-library(origami)
-source("helper_functions.R")
-library(future)
-library(future.apply)
-library(parallel)
-library(logistf)
-library(rms)
-library(psych)
-library(bayesplot)
-library(knitr)
-
-dotenv::load_dot_env()
-
 # read data
 
-read_data <- function() {
-  data_dir <- Sys.getenv("DATA_DIR")
-  df <- read_csv(file.path(data_dir, Sys.getenv("MERGED_OUTPUT_FILE")))
-
-# Merge diagnosis variables between Texas and Washington data
+clean_data <- function(df, keep_cd14 = TRUE) {
+  # Merge diagnosis variables between Texas and Washington data
 
   df <-
     df |>
@@ -51,7 +23,7 @@ read_data <- function() {
       TRUE ~ "other"
     ))
 
-# Merge race
+  # Merge race
 
   df <- df |>
     mutate(race_combined = case_when(
@@ -67,16 +39,16 @@ read_data <- function() {
       TRUE ~ "Other"
     ))
 
-# add site variable
+  # add site variable
 
   df$Site <- ifelse(!is.na(df$SEX), "Texas", "Washington")
 
-# exclude MCI and other
+  # exclude MCI and other
 
   df <- df |>
     filter(!Diagnosis_combined %in% c("MCI", "other") & !is.na(Diagnosis_combined))
 
-# code diagnosis as factor and set control as reference
+  # code diagnosis as factor and set control as reference
 
   df <- df |>
     mutate(Diagnosis_combined = as.factor(fct_recode(Diagnosis_combined,
@@ -85,44 +57,54 @@ read_data <- function() {
     ))) |>
     mutate(Diagnosis_combined = fct_relevel(Diagnosis_combined, "Control"))
 
-# set sex to factor
+  # set sex to factor
 
   df$sex_combined <- as.factor(df$sex_combined)
   df$female <- ifelse(df$sex_combined == "Female", 1, 0)
 
-# Add ab42 to ab40 ratio
-
+  # AB42 to AB40 ratio
   df$mean_ab42_ab40_ratio <- df$mean_ab42 / df$mean_ab40
 
-## Truncate biomarkers at the 99th percentile
+  # remove CD14?
+  if (!keep_cd14) {
+    df <- select(df, -mean_elisa)
+  }
+
+  ## Truncate biomarkers at the 99th percentile
 
   df <- df |>
-    mutate(across(starts_with("mean_"),
-  ~ ifelse(.x > quantile(.x, 0.99, na.rm = TRUE), quantile(.x, 0.99, na.rm = TRUE), .x)))
+    mutate(across(
+      starts_with("mean_"),
+      ~ ifelse(.x > quantile(.x, 0.99, na.rm = TRUE), quantile(.x, 0.99, na.rm = TRUE), .x)
+    ))
 
   df <- df |>
-    mutate(across(starts_with("mean_"),
-  ~ ifelse(.x < quantile(.x, 0.01, na.rm = TRUE), quantile(.x, 0.01, na.rm = TRUE), .x)))
+    mutate(across(
+      starts_with("mean_"),
+      ~ ifelse(.x < quantile(.x, 0.01, na.rm = TRUE), quantile(.x, 0.01, na.rm = TRUE), .x)
+    ))
+
   return(df)
 }
 
 #### Descriptives ####
 show_descriptives <- function(df) {
-# histograms
+  # histograms
 
   df |>
     select(starts_with("mean_")) |>
     mutate(across(c("mean_ykl", "mean_tdp", "mean_nfl"), log)) |>
     psych::multi.hist(global = FALSE, breaks = 30)
 
-# density plot
+  # density plot
 
   df |>
     filter(!Diagnosis_combined == "Control") |>
     # remove large ab42/ab40 ratio outlier
     mutate(
       mean_ab42_ab40_ratio = ifelse(mean_ab42_ab40_ratio > 0.5, NA,
-        mean_ab42_ab40_ratio),
+        mean_ab42_ab40_ratio
+      ),
       mean_ab40 = ifelse(mean_ab40 > 500, NA, mean_ab40),
       mean_ab42 = ifelse(mean_ab42 > 20, NA, mean_ab42)
     ) |>
@@ -147,16 +129,18 @@ show_descriptives <- function(df) {
     theme(legend.position = "bottom")
 
 
-# ggsave("plots/conc_by_status.png",
-#   device = "png",
-#   width = 10, height = 10, bg = "white"
-# )
+  # ggsave("plots/conc_by_status.png",
+  #   device = "png",
+  #   width = 10, height = 10, bg = "white"
+  # )
 
-# table
+  # table
 
   df |>
-    select(Diagnosis_combined, age_combined, female, Site, race_combined,
-      starts_with("mean_")) |>
+    select(
+      Diagnosis_combined, age_combined, female, Site, race_combined,
+      starts_with("mean_")
+    ) |>
     mutate(across(c("mean_ykl", "mean_tdp", "mean_nfl"), log,
       .names = "log_{.col}"
     )) |>
@@ -168,7 +152,7 @@ show_descriptives <- function(df) {
     add_p()
 
 
-## Reliability
+  ## Reliability
 
   df |>
     select(Diagnosis_combined, ends_with("_ICC")) |>
@@ -194,47 +178,51 @@ run_and_plot_roc <- function(data, target, comparators, title, nfolds = 5) {
 }
 
 get_all_rocs <- function(roc_df) {
-  outfile <- "roc_results.rds"
-  if (file.exists(outfile)) {
-    return(read_rds(outfile))
-  }
-
   roc_definitions <- list(
-    "AD_vs_Control" = list(target = "Alzheimer's",
-                           comparators = "Control",
-                           title = "Alzheimer's vs control"),
-    "FTD_vs_Control" = list(target = "Frontotermporal",
-                            comparators = "Control",
-                            title = "Frontotermporal vs control"),
-    "LBD_vs_Control" = list(target = "Lewy bodies",
-                            comparators = "Control",
-                            title = "Lewy bodies vs control"),
-    "LBD_vs_FTD" = list(target = "Lewy bodies",
-                        comparators = "Frontotermporal",
-                        title = "Lewy bodies vs frontotemporal"),
-    "AD_vs_Others" = list(target = "Alzheimer's",
-                          comparators = c("Frontotermporal", "Lewy bodies"),
-                          title = "Alzheimer's vs other dementias"),
-    "LBD_vs_Others" = list(target = "Lewy bodies",
-                          comparators = c("Frontotermporal", "Alzheimer's"),
-                          title = "Lewy bodies vs other dementias"),
-    "FTD_vs_Others" = list(target = "Frontotermporal",
-                          comparators = c("Lewy bodies", "Alzheimer's"),
-                          title = "Frontotemporal vs other dementias")
+    "AD_vs_Control" = list(
+      target = "Alzheimer's",
+      comparators = "Control",
+      title = "Alzheimer's vs control"
+    ),
+    "FTD_vs_Control" = list(
+      target = "Frontotermporal",
+      comparators = "Control",
+      title = "Frontotermporal vs control"
+    ),
+    "LBD_vs_Control" = list(
+      target = "Lewy bodies",
+      comparators = "Control",
+      title = "Lewy bodies vs control"
+    ),
+    "LBD_vs_FTD" = list(
+      target = "Lewy bodies",
+      comparators = "Frontotermporal",
+      title = "Lewy bodies vs frontotemporal"
+    ),
+    "AD_vs_Others" = list(
+      target = "Alzheimer's",
+      comparators = c("Frontotermporal", "Lewy bodies"),
+      title = "Alzheimer's vs other dementias"
+    ),
+    "LBD_vs_Others" = list(
+      target = "Lewy bodies",
+      comparators = c("Frontotermporal", "Alzheimer's"),
+      title = "Lewy bodies vs other dementias"
+    ),
+    "FTD_vs_Others" = list(
+      target = "Frontotermporal",
+      comparators = c("Lewy bodies", "Alzheimer's"),
+      title = "Frontotemporal vs other dementias"
+    )
   )
 
   roc_results <- map(roc_definitions, function(def) {
     run_and_plot_roc(roc_df, def$target, def$comparators, def$title)
   })
-  write_rds(roc_results, outfile)
   return(roc_results)
 }
 
 get_all_sex_rocs <- function(roc_df) {
-  outfile <- "sex_roc_results.rds"
-  if (file.exists(outfile)) {
-    return(read_rds(outfile))
-  }
   men <- roc_df |>
     filter(!female == 1) |>
     select(-female)
@@ -243,15 +231,21 @@ get_all_sex_rocs <- function(roc_df) {
     select(-female)
 
   roc_definitions <- list(
-    "AD_vs_Others" = list(target = "Alzheimer's",
-                          comparators = c("Frontotermporal", "Lewy bodies"),
-                          title = "Alzheimer's vs other dementias (men)"),
-    "LBD_vs_Others" = list(target = "Lewy bodies",
-                          comparators = c("Frontotermporal", "Alzheimer's"),
-                          title = "Lewy bodies vs other dementias (men)"),
-    "FTD_vs_Others" = list(target = "Frontotermporal",
-                          comparators = c("Lewy bodies", "Alzheimer's"),
-                          title = "Frontotemporal vs other dementias (men)")
+    "AD_vs_Others" = list(
+      target = "Alzheimer's",
+      comparators = c("Frontotermporal", "Lewy bodies"),
+      title = "Alzheimer's vs other dementias (men)"
+    ),
+    "LBD_vs_Others" = list(
+      target = "Lewy bodies",
+      comparators = c("Frontotermporal", "Alzheimer's"),
+      title = "Lewy bodies vs other dementias (men)"
+    ),
+    "FTD_vs_Others" = list(
+      target = "Frontotermporal",
+      comparators = c("Lewy bodies", "Alzheimer's"),
+      title = "Frontotemporal vs other dementias (men)"
+    )
   )
 
   men_results <- map(roc_definitions, function(def) {
@@ -261,34 +255,39 @@ get_all_sex_rocs <- function(roc_df) {
     run_and_plot_roc(women, def$target, def$comparators, def$title)
   })
   results <- list(men = men_results, women = women_results)
-  write_rds(results, outfile)
   return(results)
 }
 
 #### variable importance ####
 hide_vimp <- function() {
-#### Men ####
+  #### Men ####
 
   vimp_data_men <-
     men |>
     select(Diagnosis_combined, age_combined, starts_with("mean_"))
 
-  vimp_men <- lapply(c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
-                    function(outcome) {
-                      vimp_function_par(data = vimp_data_men,
-                                                        outcome_subtype = outcome,
-                                                        stratification = "men")
-                    })
+  vimp_men <- lapply(
+    c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
+    function(outcome) {
+      vimp_function_par(
+        data = vimp_data_men,
+        outcome_subtype = outcome,
+        stratification = "men"
+      )
+    }
+  )
 
   preds <- vimp_data_men |>
     select(-Diagnosis_combined) |>
     names()
 
-# AD
+  # AD
   knitr::kable(
-    cbind(preds[as.numeric(vimp_men[[1]]$mat$s)],
-    vimp_men[[1]]$est,
-    vimp_men[[1]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_men[[1]]$mat$s)],
+      vimp_men[[1]]$est,
+      vimp_men[[1]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -296,11 +295,13 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-# FT
+  # FT
   knitr::kable(
-    cbind(preds[as.numeric(vimp_men[[2]]$mat$s)],
-    vimp_men[[2]]$est,
-    vimp_men[[2]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_men[[2]]$mat$s)],
+      vimp_men[[2]]$est,
+      vimp_men[[2]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -308,11 +309,13 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-# LB
+  # LB
   knitr::kable(
-    cbind(preds[as.numeric(vimp_men[[3]]$mat$s)],
-    vimp_men[[3]]$est,
-    vimp_men[[3]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_men[[3]]$mat$s)],
+      vimp_men[[3]]$est,
+      vimp_men[[3]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -320,28 +323,34 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-#### Women ####
+  #### Women ####
 
   vimp_data_women <-
     women |>
     select(Diagnosis_combined, age_combined, starts_with("mean_"))
 
-  vimp_women <- lapply(c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
-                    function(outcome) {
-                      vimp_function_par(data = vimp_data_women,
-                                        outcome_subtype = outcome,
-                                        stratification = "women")
-                    })
+  vimp_women <- lapply(
+    c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
+    function(outcome) {
+      vimp_function_par(
+        data = vimp_data_women,
+        outcome_subtype = outcome,
+        stratification = "women"
+      )
+    }
+  )
 
   preds <- vimp_data_women |>
     select(-Diagnosis_combined) |>
     names()
 
-# AD
+  # AD
   knitr::kable(
-    cbind(preds[as.numeric(vimp_women[[1]]$mat$s)],
-    vimp_women[[1]]$est,
-    vimp_women[[1]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_women[[1]]$mat$s)],
+      vimp_women[[1]]$est,
+      vimp_women[[1]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -349,11 +358,13 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-# FT
+  # FT
   knitr::kable(
-    cbind(preds[as.numeric(vimp_women[[2]]$mat$s)],
-    vimp_women[[2]]$est,
-    vimp_women[[2]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_women[[2]]$mat$s)],
+      vimp_women[[2]]$est,
+      vimp_women[[2]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -361,11 +372,13 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-# LB
+  # LB
   knitr::kable(
-    cbind(preds[as.numeric(vimp_women[[3]]$mat$s)],
-    vimp_women[[3]]$est,
-    vimp_women[[3]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_women[[3]]$mat$s)],
+      vimp_women[[3]]$est,
+      vimp_women[[3]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -373,7 +386,7 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-#### All cohort ####
+  #### All cohort ####
 
   vimp_data <- df |>
     select(Diagnosis_combined, age_combined, female, starts_with("mean_"))
@@ -388,11 +401,13 @@ hide_vimp <- function() {
     select(age_combined, female, starts_with("mean_")) |>
     names()
 
-# AD
+  # AD
   knitr::kable(
-    cbind(preds[as.numeric(vimp_out[[1]]$mat$s)],
-    vimp_out[[1]]$est,
-    vimp_out[[1]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_out[[1]]$mat$s)],
+      vimp_out[[1]]$est,
+      vimp_out[[1]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -400,11 +415,13 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-# FT
+  # FT
   knitr::kable(
-    cbind(preds[as.numeric(vimp_out[[2]]$mat$s)],
-    vimp_out[[2]]$est,
-    vimp_out[[2]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_out[[2]]$mat$s)],
+      vimp_out[[2]]$est,
+      vimp_out[[2]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -412,11 +429,13 @@ hide_vimp <- function() {
       select(-V3, -V4)
   )
 
-# LB
+  # LB
   knitr::kable(
-    cbind(preds[as.numeric(vimp_out[[3]]$mat$s)],
-    vimp_out[[3]]$est,
-    vimp_out[[3]]$ci) |>
+    cbind(
+      preds[as.numeric(vimp_out[[3]]$mat$s)],
+      vimp_out[[3]]$est,
+      vimp_out[[3]]$ci
+    ) |>
       as_tibble() |>
       mutate(across(c(V2, V3, V4), as.numeric)) |>
       mutate(across(c(V2, V3, V4), ~ round(.x, 3))) |>
@@ -425,7 +444,7 @@ hide_vimp <- function() {
   )
 
 
-### VIMP by hand ###
+  ### VIMP by hand ###
 
   compare_auc <- function(data, outcome, reference, removed_var, full_auc) {
     var_name <- names(data)[removed_var]
@@ -434,7 +453,7 @@ hide_vimp <- function() {
     return(tibble(var = var_name, auc = auc_out, dif = full_auc - auc))
   }
 
-# AD
+  # AD
 
   compare_out_ad <-
     map(2:ncol(df),
@@ -450,33 +469,34 @@ hide_vimp <- function() {
     arrange(desc(dif))
 
 
-# FTD
+  # FTD
 
   compare_out_ft <-
     map(2:ncol(df),
-        compare_auc,
-        data = df,
-        outcome = "Frontotermporal",
-        reference = c("Alzheimer's", "Lewy bodies"),
-        full_auc = mean(roc_ft$AUC))
+      compare_auc,
+      data = df,
+      outcome = "Frontotermporal",
+      reference = c("Alzheimer's", "Lewy bodies"),
+      full_auc = mean(roc_ft$AUC)
+    )
 
   bind_rows(compare_out_ft) |>
     mutate(dif = ifelse(dif < 0, 0, dif)) |>
     arrange(desc(dif))
 
 
-# LB
+  # LB
 
   compare_out_lb <-
     map(2:ncol(df),
-        compare_auc,
-        data = df,
-        outcome = "Lewy bodies",
-        reference = c("Alzheimer's", "Frontotermporal"),
-        full_auc = mean(roc_lb$AUC))
+      compare_auc,
+      data = df,
+      outcome = "Lewy bodies",
+      reference = c("Alzheimer's", "Frontotermporal"),
+      full_auc = mean(roc_lb$AUC)
+    )
 
   bind_rows(compare_out_lb) |>
     mutate(dif = ifelse(dif < 0, 0, dif)) |>
     arrange(desc(dif))
 }
-

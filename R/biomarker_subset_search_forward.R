@@ -1,4 +1,3 @@
-source("biomarker_subset_search.R")
 
 build_path_forward <- function(full_path, ref_auc) {
   all_vars <- c(
@@ -71,7 +70,6 @@ build_path_forward <- function(full_path, ref_auc) {
 }
 
 marker_subset_forward <- function(data, outcome, reference) {
-  set.seed(1234)
   plan(multicore, workers = detectCores())
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
   out <-
@@ -155,7 +153,7 @@ forward_search <- function(data, outcome, reference) {
 
     # Add the best variable to the current model
     current_data <- bind_cols(
-      current_data, 
+      current_data,
       data %>% select(all_of(to_add))
     )
 

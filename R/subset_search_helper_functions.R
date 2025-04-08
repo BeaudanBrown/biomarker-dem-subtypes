@@ -1,5 +1,4 @@
-library(cvAUC)
-### Function for cross-validated biomarker subset identification
+## Function for cross-validated biomarker subset identification
 
 get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
   # filter to outcome and reference

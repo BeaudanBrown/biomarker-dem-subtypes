@@ -1,9 +1,5 @@
 ### Functions for biomarker descriptions
 
-source("learners.R")
-
-### AUROC function
-
 auroc <- function(data, outcome, reference, nfolds = 5) {
   # filter to outcome and reference
 
@@ -14,8 +10,6 @@ auroc <- function(data, outcome, reference, nfolds = 5) {
   data$Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
 
   data <- data |> select(-Diagnosis_combined)
-
-  set.seed(1234)
 
   folds <- make_folds(nrow(data),
     fold_fun = folds_vfold,
@@ -47,25 +41,25 @@ cv_auroc <- function(fold, data, nfolds) {
 }
 
 predict_status <- function(data, nfolds) {
-    train_Y <- data$Y
+  train_Y <- data$Y
 
-    train_X <- data |> select(-Y)
+  train_X <- data |> select(-Y)
 
-    # fit superlearner
+  # fit superlearner
 
-    fit <- SuperLearner(
-      Y = train_Y,
-      X = train_X,
-      family = binomial(),
-      SL.library = ifelse(ncol(train_X) == 1, univariate_library, SL.library),
-      cvControl = list(V = nfolds, stratifyCV = TRUE)
-    )
+  fit <- SuperLearner(
+    Y = train_Y,
+    X = train_X,
+    family = binomial(),
+    SL.library = ifelse(ncol(train_X) == 1, univariate_library, SL.library),
+    cvControl = list(V = nfolds, stratifyCV = TRUE)
+  )
 
 
-    pred_vars <- names(train_X)
+  pred_vars <- names(train_X)
 
-    return(list(fit = fit, pred_vars = pred_vars))
-  }
+  return(list(fit = fit, pred_vars = pred_vars))
+}
 
 get_roc <- function(data, out) {
   valid_X <- data |> select(-Y)
@@ -107,39 +101,32 @@ calculate_tpr_fpr <- function(threshold, data) {
 
 
 plot_roc <- function(roc_data, title_text, nfolds = 5) {
+  AUC <- mean(map_vec(roc_data$aucs$results, function(a) mean(a$AUC)))
+  TPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$TPR)) / nfolds
+  FPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$FPR)) / nfolds
 
-  AUC <- round(mean(roc_data$AUC), 2)
-
-  data <-
-    tibble(
-      TPR = roc_data$TPR,
-      FPR = roc_data$FPR
+  plot <- tibble(
+    TPR = TPR,
+    FPR = FPR
     ) |>
-    mutate(threshold = rep(1:(length(roc_data$TPR) / nfolds), nfolds)) |>
-    group_by(threshold) |>
-    summarise(
-      TPR = mean(TPR),
-      FPR = mean(FPR)
-    )
-
-  plot <- ggplot(data, aes(x = FPR, y = TPR)) +
-  geom_path(size = 1) +
-  geom_abline(
-    slope = 1, intercept = 0,
-    linetype = "dashed", color = "black", alpha = 0.5
-  ) +
-  annotate(
-    geom = "text", x = 0.1, y = 0.95,
-    label = paste("AUC =", AUC),
-    size = 6, fontface = "bold"
-  ) +
-  labs(
-    x = "False Positive Rate (1 - Specificity)",
-    y = "True Positive Rate (Sensitivity)",
-    title = title_text
-  ) +
-  bayesplot::theme_default() +
-  theme(legend.position = "bottom")
+    ggplot(aes(x = FPR, y = TPR)) +
+    geom_path(size = 1) +
+    geom_abline(
+      slope = 1, intercept = 0,
+      linetype = "dashed", color = "black", alpha = 0.5
+    ) +
+    annotate(
+      geom = "text", x = 0.1, y = 0.95,
+      label = paste("AUC =", AUC),
+      size = 6, fontface = "bold"
+    ) +
+    labs(
+      x = "False Positive Rate (1 - Specificity)",
+      y = "True Positive Rate (Sensitivity)",
+      title = title_text
+    ) +
+    bayesplot::theme_default() +
+    theme(legend.position = "bottom")
 
 
   ggsave(paste0("plots/", title_text, ".png"),
@@ -151,25 +138,18 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
 }
 
 plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
-
   # A helper function to extract the summary results from a single ROC
   extract_results <- function(roc_data) {
-    AUC <- round(mean(roc_data$AUC), 2)
-    data <-
-      tibble(
-        TPR = roc_data$TPR,
-        FPR = roc_data$FPR
-      ) |>
-      mutate(
-        threshold = rep(1:(length(roc_data$TPR) / nfolds), nfolds)
-      ) |>
-      group_by(threshold) |>
-      summarise(
-        TPR = mean(TPR),
-        FPR = mean(FPR),
-        .groups = "drop"
-      )
-    data$AUC <- AUC
+    AUC <- mean(map_vec(roc_data$aucs$results, function(a) mean(a$AUC)))
+    TPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$TPR)) / nfolds
+    FPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$FPR)) / nfolds
+
+    data <- tibble(
+      TPR = TPR,
+      FPR = FPR,
+      AUC = AUC
+    )
+
     return(data)
   }
 
@@ -192,8 +172,10 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
   # Create the ROC plot
   plot <- ggplot(combined_data, aes_string(x = "FPR", y = "TPR", colour = "comparison")) +
     geom_path(size = 1) +
-    geom_abline(slope = 1, intercept = 0,
-                         linetype = "dashed", color = "black", alpha = 0.5) +
+    geom_abline(
+      slope = 1, intercept = 0,
+      linetype = "dashed", color = "black", alpha = 0.5
+    ) +
     labs(
       x = "False Positive Rate (1 - Specificity)",
       y = "True Positive Rate (Sensitivity)",
@@ -206,9 +188,11 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
     guides(colour = guide_legend(nrow = 2))
 
   # Save the plot and return it
-  ggsave(filename = paste0("plots/", title_text, ".png"),
-                  plot = plot,
-                  width = 13, height = 13, bg = "white")
+  ggsave(
+    filename = paste0("plots/", title_text, ".png"),
+    plot = plot,
+    width = 13, height = 13, bg = "white"
+  )
 
   return(plot)
 }
@@ -216,17 +200,6 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
 #### VIMP ####
 
 vimp_function_par <- function(data, outcome_subtype, stratification = "") {
-  # Define output file name (be sure to clean the outcome_subtype if needed)
-  outfile <- paste0(
-    "vimp_",
-    sub("'", "", outcome_subtype),
-    ifelse(nzchar(stratification), paste0("_", stratification), ""),
-    ".rds"
-  )
-  # Check if already computed
-  if (file.exists(outfile)) {
-    return(read_rds(outfile))
-  }
   # Remove rows with NA
   data <- drop_na(data)
   # Create response variable
@@ -254,8 +227,6 @@ vimp_function_par <- function(data, outcome_subtype, stratification = "") {
   }, future.seed = 1234)
   # Merge results from each predictor (assuming merge_vim is associative)
   out <- Reduce(function(x, y) merge_vim(x, y), vimp_list)
-  # Save the results for the current outcome subtype
-  write_rds(out, outfile)
   return(out)
 }
 
@@ -267,34 +238,27 @@ vimp_function <- function(data, outcome_subtype) {
 
   X <- select(data, -Diagnosis_combined)
 
-  if (file.exists(paste0("vimp_", sub("'", "", outcome_subtype), ".rds"))) {
-    out <- read_rds(paste0("vimp_", sub("'", "", outcome_subtype), ".rds"))
-  } else {
-
-    for (i in seq_len(ncol(X))) {
-      print(i)
-      vimp1 <- cv_vim(
-        Y = Y,
-        X = X,
-        indx = i,
-        type = "auc",
-        V = 10,
-        run_regression = TRUE,
-        SL.library = SL.library,
-        sample_splitting = FALSE,
-        stratified = TRUE,
-        cvControl = list(V = 10, stratifyCV = TRUE),
-        family = binomial()
-      )
-      if (i == 1) {
-        out <- vimp1
-      } else {
-        out <- merge_vim(out, vimp1)
-      }
+  for (i in seq_len(ncol(X))) {
+    print(i)
+    vimp1 <- cv_vim(
+      Y = Y,
+      X = X,
+      indx = i,
+      type = "auc",
+      V = 10,
+      run_regression = TRUE,
+      SL.library = SL.library,
+      sample_splitting = FALSE,
+      stratified = TRUE,
+      cvControl = list(V = 10, stratifyCV = TRUE),
+      family = binomial()
+    )
+    if (i == 1) {
+      out <- vimp1
+    } else {
+      out <- merge_vim(out, vimp1)
     }
   }
-
-  write_rds(out, paste0("vimp_", sub("'", "", outcome_subtype), ".rds"))
 
   return(out)
 }

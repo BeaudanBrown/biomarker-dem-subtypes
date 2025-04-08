@@ -63,3 +63,6 @@ rsconnect/
 .direnv
 
 /.quarto/
+
+# targets cache
+_targets/
