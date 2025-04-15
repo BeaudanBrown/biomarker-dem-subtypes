@@ -60,7 +60,7 @@ tar_read(roc_results)$LBD_vs_FTD[["roc_plot"]]
 mmse <- tar_read(mmse_out)
 mmse[[1]]
 for (marker in mmse[[2]]) {
-  marker
+  show(marker)
 }
 
 ```
@@ -72,7 +72,7 @@ for (marker in mmse[[2]]) {
 cdr <- tar_read(cdr_out)
 cdr[[1]]
 for (marker in cdr[[2]]) {
-  marker
+  show(marker)
 }
 ```
 :::
@@ -89,9 +89,8 @@ tar_read(csf_out)
 ```{r}
 pet <- tar_read(pet_ptau)
 pet[[1]]
-for (marker in pet[[2]]) {
-  marker
-}
+pet[[2]]
+pet[[3]]
 ```
 :::
 
