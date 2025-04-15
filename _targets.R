@@ -40,7 +40,8 @@ tar_option_set(
     "class",
     "patchwork",
     "tidyverse"
-  )
+  ),
+  format = "qs"
 )
 
 # Run the R scripts in the R/ folder

@@ -5,20 +5,6 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        my-qs2 = pkgs.rPackages.buildRPackage {
-          name = "qs2";
-          src = pkgs.fetchFromGitHub {
-            owner = "qsbase";
-            repo = "qs2";
-            rev = "6f835e54eb7d10123051f44894ee1001566094fb";
-            sha256 = "sha256-yi8nKwjHMYBaWQSt8AmuPkSOrGOffoSYpNiM0Sv1u/M=";
-          };
-          propagatedBuildInputs = with pkgs.rPackages; [
-            Rcpp
-            stringfish
-            RcppParallel
-          ];
-        };
       in
         {
         devShells.default = pkgs.mkShell {
@@ -69,14 +55,14 @@
               targets
               usethis
               visNetwork
-              my-qs2
+              qs2
             ]);
         };
       }
     );
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
     flake-utils = {
       url = "github:numtide/flake-utils";
