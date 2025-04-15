@@ -6,7 +6,7 @@ get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
   data <- drop_na(data)
 
-  set.seed(1234)
+  set.seed(Sys.getenv("SEED"))
 
   Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
 
@@ -46,7 +46,7 @@ get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
 
   data <- drop_na(data)
 
-  set.seed(1234)
+  set.seed(Sys.getenv("SEED"))
 
   Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
 
@@ -92,9 +92,64 @@ cv_biomarker_subset <-
     return(out)
 }
 
-marker_subset_full <- function(data, outcome, reference) {
-  set.seed(1234)
-  data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
+all_subset_data <- function(data, sex_strat = "") {
+  ad <- marker_subset(
+    data,
+    "Alzheimer's",
+    c("Lewy bodies", "Frontotermporal"),
+    sex_strat = sex_strat
+  )
+  ftd <- marker_subset(
+    data,
+    "Frontotermporal",
+    c("Lewy bodies", "Alzheimer's"),
+    sex_strat = sex_strat
+  )
+  lbd <- marker_subset(
+    data,
+    "Lewy bodies",
+    c("Alzheimer's", "Frontotermporal"),
+    sex_strat = sex_strat
+  )
+  list(ad = ad, ftd = ftd, lbd = lbd)
+}
+
+all_subset_plots <- function(data, extra_title = "") {
+  ad_title <- paste0(extra_title, " - n = ", data$ad$n)
+  ad_path <- build_path(data$ad$path, data$ad$reference_auc)
+  ad_plot <- plot_auc_steps(ad_path, "Alzheimer's", ad_title)
+
+  ftd_title <- paste0(extra_title, " - n = ", data$ftd$n)
+  ftd_path <- build_path(data$ftd$path, data$ftd$reference_auc)
+  ftd_plot <- plot_auc_steps(ftd_path, "Frontotermporal", ftd_title )
+
+  lbd_title <- paste0(extra_title, " - n = ", data$lbd$n)
+  lbd_path <- build_path(data$lbd$path, data$lbd$reference_auc)
+  lbd_plot <- plot_auc_steps(lbd_path, "Lewy bodies", lbd_title)
+  list(ad = ad_plot, ftd = ftd_plot, lbd = lbd_plot)
+}
+
+
+marker_subset <- function(data, outcome, reference, sex_strat = "", use_cogs = FALSE) {
+  plan(multicore, workers = detectCores())
+  set.seed(Sys.getenv("SEED"))
+  if (sex_strat != "") {
+    data <- data |>
+      filter(female == ifelse(sex_strat == "female", 1, 0)) |>
+      select(-female)
+    vars <- c("Diagnosis_combined", "age_combined")
+  } else {
+    vars <- c("Diagnosis_combined", "age_combined", "female")
+  }
+  if (use_cogs) {
+    vars <- append(vars, c("MMSE", "cdr"))
+  }
+
+  data <- data[data$Diagnosis_combined %in% c(outcome, reference), ] |>
+    select(all_of(vars), starts_with("mean_")) |>
+    select(-mean_ab42_ab40_ratio) |>
+    drop_na(starts_with("mean_"))
+
   out <-
     backwards_search(
       data,
@@ -205,7 +260,8 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
     path = aucs,
     reference_auc = reference_auc,
     reference_model = reference_model,
-    subset_model = subset_model
+    subset_model = subset_model,
+    n = nrow(data[data$Diagnosis_combined == outcome, ])
   ))
 }
 

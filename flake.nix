@@ -57,6 +57,7 @@
               visNetwork
               qs2
               styler
+              tarchetypes
             ]);
         };
       }

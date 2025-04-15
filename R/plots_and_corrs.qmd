@@ -16,6 +16,8 @@ knitr::opts_chunk$set(
   fig.align = "center",
   out.width = "100%"
 )
+library(targets)
+library(patchwork)
 ```
 
 ::: {.panel-tabset}
@@ -29,7 +31,11 @@ tar_read(combined_roc)
 ## Subtypes by sex
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-tar_read(sex_specific_rocs)
+data <- tar_read(sex_specific_rocs)
+data[[1]]
+data[[2]]
+data[[3]]
+data[[4]]
 ```
 :::
 
@@ -51,14 +57,23 @@ tar_read(roc_results)$LBD_vs_FTD[["roc_plot"]]
 ## MMSE
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-tar_read(mmse_out)
+mmse <- tar_read(mmse_out)
+mmse[[1]]
+for (marker in mmse[[2]]) {
+  marker
+}
+
 ```
 :::
 
 ## CDR
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-tar_read(cdr_out)
+cdr <- tar_read(cdr_out)
+cdr[[1]]
+for (marker in cdr[[2]]) {
+  marker
+}
 ```
 :::
 
@@ -72,7 +87,11 @@ tar_read(csf_out)
 ## PET / PTAU217
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-tar_read(pet_ptau)
+pet <- tar_read(pet_ptau)
+pet[[1]]
+for (marker in pet[[2]]) {
+  marker
+}
 ```
 :::
 
@@ -81,7 +100,10 @@ tar_read(pet_ptau)
 #### * indicates p < 0.05
 ```{r}
 #| results: asis
-tar_read(vimp_full)
+vimp <- tar_read(vimp_full)
+vimp[[1]]
+vimp[[2]]
+vimp[[3]]
 ```
 :::
 
@@ -92,14 +114,20 @@ tar_read(vimp_full)
 ::: {.column width="50%" padding="10%"}
 ```{r}
 #| results: asis
-tar_read(vimp_females)
+vimp_f <- tar_read(vimp_females)
+vimp_f[[1]]
+vimp_f[[2]]
+vimp_f[[3]]
 ```
 :::
 
 ::: {.column width="50%"}
 ```{r}
 #| results: asis
-tar_read(vimp_males)
+vimp_m <- tar_read(vimp_males)
+vimp_m[[1]]
+vimp_m[[2]]
+vimp_m[[3]]
 ```
 :::
 ::::
@@ -107,76 +135,26 @@ tar_read(vimp_males)
 
 ```{r}
 #| include: false
-df <- read_search_data()
-
-ad_n <- nrow(df[df$Diagnosis_combined == "Alzheimer's", ])
-ad_full <- read_rds("results/ad_full.rds")
-ad_path <- build_path(ad_full$path, ad_full$reference_auc)
-ad_plot <- plot_auc_steps(ad_path, "Alzheimer's", paste0(" - n = ", ad_n))
-
-ftd_n <- nrow(df[df$Diagnosis_combined == "Frontotemporal", ])
-ftd_full <- read_rds("results/ftd_full.rds")
-ftd_path <- build_path(ftd_full$path, ftd_full$reference_auc)
-ftd_plot <- plot_auc_steps(ftd_path, "Frontotemporal", paste0(" - n = ", ftd_n))
-
-lbd_n <- nrow(df[df$Diagnosis_combined == "Lewy bodies", ])
-lbd_full <- read_rds("results/lbd_full.rds")
-lbd_path <- build_path(lbd_full$path, lbd_full$reference_auc)
-lbd_plot <- plot_auc_steps(lbd_path, "Lewy bodies", paste0(" - n = ", lbd_n))
-
-  men <- df |>
-    filter(female == 0) |>
-    select(-female)
-  women <- df |>
-    filter(female == 1) |>
-    select(-female)
-
+plots <- tar_read(subset_plots)
 ```
 
 ## Subset Full
 ```{r, fig.align="center", out.width="80%"}
-ad_plot
-ftd_plot
-lbd_plot
+plots$ad
+plots$ftd
+plots$lbd
 ```
 
 ```{r}
 #| include: false
-ad_men_n <- nrow(df[df$female == 0 & df$Diagnosis_combined == "Alzheimer's", ])
-ad_men <- read_rds("results/ad_men.rds")
-ad_men_path <- build_path(ad_men$path, ad_men$reference_auc)
-ad_men_plot <- plot_auc_steps(ad_men_path, "Alzheimer's", paste0(" - Men, n = ", ad_men_n))
-
-ad_women_n <- nrow(df[df$female == 1 & df$Diagnosis_combined == "Alzheimer's", ])
-ad_women <- read_rds("results/ad_women.rds")
-ad_women_path <- build_path(ad_women$path, ad_women$reference_auc)
-ad_women_plot <- plot_auc_steps(ad_women_path, "Alzheimer's", paste0(" - Women, n = ", ad_women_n))
-
-ftd_men_n <- nrow(df[df$female == 0 & df$Diagnosis_combined == "Frontotemporal", ])
-ftd_men <- read_rds("results/ftd_men.rds")
-ftd_men_path <- build_path(ftd_men$path, ftd_men$reference_auc)
-ftd_men_plot <- plot_auc_steps(ftd_men_path, "Frontotemporal", paste0(" - Men, n = ", ftd_men_n))
-
-ftd_women_n <- nrow(df[df$female == 1 & df$Diagnosis_combined == "Frontotemporal", ])
-ftd_women <- read_rds("results/ftd_women.rds")
-ftd_women_path <- build_path(ftd_women$path, ftd_women$reference_auc)
-ftd_women_plot <- plot_auc_steps(ftd_women_path, "Frontotemporal", paste0(" - Women, n = ", ftd_women_n))
-
-lbd_men_n <- nrow(df[df$female == 0 & df$Diagnosis_combined == "Lewy bodies", ])
-lbd_men <- read_rds("results/lbd_men.rds")
-lbd_men_path <- build_path(lbd_men$path, lbd_men$reference_auc)
-lbd_men_plot <- plot_auc_steps(lbd_men_path, "Lewy bodies", paste0(" - Men, n = ", lbd_men_n))
-
-lbd_women_n <- nrow(df[df$female == 1 & df$Diagnosis_combined == "Lewy bodies", ])
-lbd_women <- read_rds("results/lbd_women.rds")
-lbd_women_path <- build_path(lbd_women$path, lbd_women$reference_auc)
-lbd_women_plot <- plot_auc_steps(lbd_women_path, "Lewy bodies", paste0(" - Women, n = ", lbd_women_n))
+plots_men <- tar_read(subset_plots_men)
+plots_women <- tar_read(subset_plots_women)
 ```
 
 ## Subset By Sex
 ```{r, fig.align="center", out.width="100%"}
-ad_men_plot + ad_women_plot
-ftd_men_plot + ftd_women_plot
-lbd_men_plot + lbd_women_plot
+plots_men$ad + plots_women$ad
+plots_men$ftd + plots_women$ftd
+plots_men$lbd + plots_women$lbd
 ```
 :::
