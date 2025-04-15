@@ -1,7 +1,11 @@
 library(targets)
 
+dotenv::load_dot_env()
+data_dir <- Sys.getenv("DATA_DIR")
+cache_dir <- Sys.getenv("CACHE_DIR")
+
 # set target configs
-tar_config_set(store = CACHE_DIR)
+tar_config_set(store = cache_dir)
 
 # Set target options:
 tar_option_set(
@@ -49,9 +53,6 @@ tar_option_set(
 
 # Run the R scripts in the R/ folder
 tar_source()
-
-dotenv::load_dot_env()
-data_dir <- Sys.getenv("DATA_DIR")
 
 ## pipeline
 list(
