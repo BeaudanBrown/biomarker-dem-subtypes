@@ -251,6 +251,10 @@ mmse_table <- function(df) {
 cdr_vs_markers <- function(df) {
 
   whole_inflam <- inflam_cdr(df)
+  Any_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
+  AD_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's"))
+  FTD_inflam <- inflam_cdr(df, diagnosis = c("Frontotermporal"))
+  LBD_inflam <- inflam_cdr(df, diagnosis = c("Lewy bodies"))
 
   cdr_list <- list(
     "All" = as.data.frame(whole_inflam$cdr),
