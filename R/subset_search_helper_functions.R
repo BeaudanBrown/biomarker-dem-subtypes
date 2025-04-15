@@ -92,36 +92,39 @@ cv_biomarker_subset <-
     return(out)
 }
 
-all_subset_data <- function(data, sex_strat = "") {
+all_subset_data <- function(data, sex_strat = "", use_cdr = FALSE) {
   ad <- marker_subset(
     data,
     "Alzheimer's",
     c("Lewy bodies", "Frontotermporal"),
-    sex_strat = sex_strat
+    sex_strat = sex_strat,
+    use_cdr = use_cdr
   )
   ftd <- marker_subset(
     data,
     "Frontotermporal",
     c("Lewy bodies", "Alzheimer's"),
-    sex_strat = sex_strat
+    sex_strat = sex_strat,
+    use_cdr = use_cdr
   )
   lbd <- marker_subset(
     data,
     "Lewy bodies",
     c("Alzheimer's", "Frontotermporal"),
-    sex_strat = sex_strat
+    sex_strat = sex_strat,
+    use_cdr = use_cdr
   )
   list(ad = ad, ftd = ftd, lbd = lbd)
 }
 
-all_subset_plots <- function(data, extra_title = "") {
+all_subset_plots <- function(data, extra_title = "", use_cdr = FALSE) {
   ad_title <- paste0(extra_title, " - n = ", data$ad$n)
   ad_path <- build_path(data$ad$path, data$ad$reference_auc)
   ad_plot <- plot_auc_steps(ad_path, "Alzheimer's", ad_title)
 
   ftd_title <- paste0(extra_title, " - n = ", data$ftd$n)
   ftd_path <- build_path(data$ftd$path, data$ftd$reference_auc)
-  ftd_plot <- plot_auc_steps(ftd_path, "Frontotermporal", ftd_title )
+  ftd_plot <- plot_auc_steps(ftd_path, "Frontotermporal", ftd_title)
 
   lbd_title <- paste0(extra_title, " - n = ", data$lbd$n)
   lbd_path <- build_path(data$lbd$path, data$lbd$reference_auc)
@@ -130,7 +133,7 @@ all_subset_plots <- function(data, extra_title = "") {
 }
 
 
-marker_subset <- function(data, outcome, reference, sex_strat = "", use_cogs = FALSE) {
+marker_subset <- function(data, outcome, reference, sex_strat = "", use_cdr = FALSE) {
   plan(multicore, workers = detectCores())
   set.seed(Sys.getenv("SEED"))
   if (sex_strat != "") {
@@ -141,14 +144,14 @@ marker_subset <- function(data, outcome, reference, sex_strat = "", use_cogs = F
   } else {
     vars <- c("Diagnosis_combined", "age_combined", "female")
   }
-  if (use_cogs) {
-    vars <- append(vars, c("MMSE", "cdr"))
+  if (use_cdr) {
+    vars <- append(vars, c("cdr"))
   }
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ] |>
     select(all_of(vars), starts_with("mean_")) |>
     select(-mean_ab42_ab40_ratio) |>
-    drop_na(starts_with("mean_"))
+    drop_na()
 
   out <-
     backwards_search(
@@ -186,7 +189,7 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
 
   while (preds_removed <= total_preds && smallest_auc_drop < threshold) {
     indices <-
-      which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined"))
+      which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined", "cdr"))
 
     get_submodel_auc <- function(i) {
       trim <- select(data, -names(data)[i])

@@ -157,4 +157,16 @@ plots_men$ad + plots_women$ad
 plots_men$ftd + plots_women$ftd
 plots_men$lbd + plots_women$lbd
 ```
+
+## Biomarker subset path (cdr adjusted)
+```{r}
+#| include: false
+plots_cdr <- tar_read(subset_plots_cdr)
+```
+
+```{r, fig.align="center", out.width="80%"}
+plots_cdr$ad
+plots_cdr$ftd
+plots_cdr$lbd
+```
 :::

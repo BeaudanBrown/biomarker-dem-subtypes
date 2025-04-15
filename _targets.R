@@ -101,11 +101,15 @@ list(
   tar_target(subset_data, all_subset_data(df)),
   tar_target(subset_plots, all_subset_plots(subset_data)),
   # Marker subset for men
-  tar_target(subset_data_men, all_subset_data(df, sex = "male")),
+  tar_target(subset_data_men, all_subset_data(df, sex_strat = "male")),
   tar_target(subset_plots_men, all_subset_plots(subset_data_men, extra_title = " - Males")),
   # Marker subset for women
-  tar_target(subset_data_women, all_subset_data(df, sex = "female")),
+  tar_target(subset_data_women, all_subset_data(df, sex_strat = "female")),
   tar_target(subset_plots_women, all_subset_plots(subset_data_women, extra_title = " - Females")),
+
+  # Marker subset for full cohort with cdr
+  tar_target(subset_data_cdr, all_subset_data(df, use_cdr = TRUE)),
+  tar_target(subset_plots_cdr, all_subset_plots(subset_data_cdr)),
   # Quarto document for results
   tar_quarto(plots_and_corrs, path = "./R/plots_and_corrs.qmd", quiet = FALSE)
 )
