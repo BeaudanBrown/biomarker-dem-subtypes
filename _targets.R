@@ -1,5 +1,8 @@
 library(targets)
 
+# set target configs
+tar_config_set(store = CACHE_DIR)
+
 # Set target options:
 tar_option_set(
   packages = c(
@@ -79,6 +82,16 @@ list(
   tar_target(subtypes_control, subtypes_vs_control(roc_results)),
   # MMSE correlation table
   tar_target(mmse_out, mmse_table(df)),
+  # CDR correlation table
+  tar_target(cdr_out, cdr_vs_markers(df)),
   # CSF AB vs plasma markers
-  tar_target(csf_out, csf_vs_markers(df))
+  tar_target(csf_out, csf_vs_markers(df)),
+  # PET AB vs PTAU-217
+  tar_target(pet_ptau, pet_vs_ptau(df)),
+  # Variable importance overall
+  tar_target(vimp_full, vimp_overall(df)),
+  # Variable importance for females
+  tar_target(vimp_females, vimp_by_sex(df, "female")),
+  # Variable importance for males
+  tar_target(vimp_males, vimp_by_sex(df, "male"))
 )

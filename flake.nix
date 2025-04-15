@@ -56,6 +56,7 @@
               usethis
               visNetwork
               qs2
+              styler
             ]);
         };
       }
