@@ -21,14 +21,14 @@ library(patchwork)
 ```
 
 ::: {.panel-tabset}
-## Subtypes vs Other Dem
+## ROC curves: each dementia subtypes vs others
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(combined_roc)
 ```
 :::
 
-## Subtypes by sex
+## ROC curves: each dementia subtypes vs others by sex
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 data <- tar_read(sex_specific_rocs)
@@ -39,14 +39,14 @@ data[[4]]
 ```
 :::
 
-## Subtypes vs Control
+## ROC curves: each dementia subtype vs control
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(subtypes_control)
 ```
 :::
 
-## LBD vs FTD
+## ROC curve: LBD vs FTD
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(roc_results)$LBD_vs_FTD[["roc_plot"]]
@@ -54,47 +54,48 @@ tar_read(roc_results)$LBD_vs_FTD[["roc_plot"]]
 :::
 
 
-## MMSE
+## Biomarker MMSE correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 mmse <- tar_read(mmse_out)
 mmse[[1]]
 for (marker in mmse[[2]]) {
-  show(marker)
+  marker
 }
 
 ```
 :::
 
-## CDR
+## Biomarker CDR correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 cdr <- tar_read(cdr_out)
 cdr[[1]]
 for (marker in cdr[[2]]) {
-  show(marker)
+  marker
 }
 ```
 :::
 
-## CSF
+## Biomarker and CSF correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(csf_out)
 ```
 :::
 
-## PET / PTAU217
+## Biomarkers and PET measures correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 pet <- tar_read(pet_ptau)
 pet[[1]]
-pet[[2]]
-pet[[3]]
+for (marker in pet[[2]]) {
+  marker
+}
 ```
 :::
 
-## VImp Full
+## Variable importance
 ::: {.my-table-wrapper style="width:60%; margin:auto;"}
 #### * indicates p < 0.05
 ```{r}
@@ -106,7 +107,7 @@ vimp[[3]]
 ```
 :::
 
-## VImp By Sex
+## Variable importance by sex
 ::: {.my-table-wrapper style="width:60%; margin:auto;"}
 #### * indicates p < 0.05
 :::: {.columns}
@@ -137,7 +138,7 @@ vimp_m[[3]]
 plots <- tar_read(subset_plots)
 ```
 
-## Subset Full
+## Biomarker subset path
 ```{r, fig.align="center", out.width="80%"}
 plots$ad
 plots$ftd
@@ -150,7 +151,7 @@ plots_men <- tar_read(subset_plots_men)
 plots_women <- tar_read(subset_plots_women)
 ```
 
-## Subset By Sex
+## Biomarker subset path by sex
 ```{r, fig.align="center", out.width="100%"}
 plots_men$ad + plots_women$ad
 plots_men$ftd + plots_women$ftd

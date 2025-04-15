@@ -109,25 +109,23 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
   plot <- tibble(
     TPR = TPR,
     FPR = FPR
-    ) |>
-    ggplot(aes(x = FPR, y = TPR)) +
+  ) |>
+    mutate(comparison = paste0("LBD vs FTD (AUC: ", round(AUC,2), ")")) |>
+    ggplot(aes(x = FPR, y = TPR, colour = comparison)) +
     geom_path(size = 1) +
     geom_abline(
       slope = 1, intercept = 0,
       linetype = "dashed", color = "black", alpha = 0.5
     ) +
-    annotate(
-      geom = "text", x = 0.1, y = 0.95,
-      label = paste("AUC =", AUC),
-      size = 6, fontface = "bold"
-    ) +
     labs(
       x = "False Positive Rate (1 - Specificity)",
       y = "True Positive Rate (Sensitivity)",
-      title = title_text
+      title = title_text,
+      colour = NULL
     ) +
     bayesplot::theme_default() +
     theme(legend.position = "bottom")
+
 
 
   ggsave(paste0("plots/", title_text, ".png"),
@@ -137,6 +135,7 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
 
   return(plot)
 }
+
 
 plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
   # A helper function to extract the summary results from a single ROC

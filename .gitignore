@@ -66,3 +66,6 @@ rsconnect/
 
 # targets cache
 _targets/
+
+# targets yaml
+_targets.yaml

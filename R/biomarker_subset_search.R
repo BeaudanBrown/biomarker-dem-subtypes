@@ -13,7 +13,7 @@ plot_auc_steps <- function(data, outcome, extra_title = "") {
 
   # Create the plot
   p <- ggplot(data, aes(x = step, y = auc)) +
-    geom_line(size = 1, color = "steelblue") +
+    geom_line(linewidth = 1, color = "steelblue") +
     geom_pointrange(aes(ymin = cil, ymax = ciu), color = "darkblue") +
     labs(
       title = paste0(outcome, " Marker Path", extra_title),
