@@ -54,6 +54,7 @@
               patchwork
               targets
               usethis
+              visNetwork
             ]);
         };
       }

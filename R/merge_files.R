@@ -1,6 +1,6 @@
 ## Merging ADDF datafiles with biomarker, pheno, etc data
 
-merge_datafiles <- function(pheno_file, gilipin_file, all_cases_file, addf_file, texas_file, texas_file_update, addf_cd14_file) {
+merge_datafiles <- function(pheno_file, gilipin_file, all_cases_file, addf_file, texas_file, texas_file_update, addf_cd14_file, wash_cogs_file) {
   ### Read data ####
 
   ### Phenotype
@@ -10,6 +10,21 @@ merge_datafiles <- function(pheno_file, gilipin_file, all_cases_file, addf_file,
   setnames(pheno, names(pheno), gsub(" ", "_", names(pheno)))
 
   setnames(pheno, "PA_DB_UID", "PA_ID")
+
+  wash_cdr <- read_excel(wash_cogs_file)
+  wash_cdr <- wash_cdr |>
+    rename(
+      PA_ID = "PA ID",
+      cdr = "CDR_at_Draw",
+    ) |>
+    select(
+      PA_ID,
+      cdr
+    ) |>
+    mutate(cdr = as.numeric(cdr))
+
+  pheno <- full_join(pheno, wash_cdr, by = "PA_ID", suffix = c("_x", "")) |>
+    select(-cdr_x)
 
   ### match index to PA_ID
 

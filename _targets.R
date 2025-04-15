@@ -61,9 +61,10 @@ list(
     file.path(data_dir, Sys.getenv("TEXAL_UPDATE_FILE")),
     format = "file"),
   tar_target(addf_cd14_file, file.path(data_dir, Sys.getenv("ADDF_CD14_FILE")), format = "file"),
+  tar_target(wash_cogs_file, file.path(data_dir, Sys.getenv("NEW_WASH_COGS")), format = "file"),
   # merge input data
   tar_target(joined, merge_datafiles(
-    pheno_file, gilipin_file, all_cases_file, addf_file, texas_file, texas_file_update, addf_cd14_file
+    pheno_file, gilipin_file, all_cases_file, addf_file, texas_file, texas_file_update, addf_cd14_file, wash_cogs_file
   )),
   # clean data
   tar_target(df, clean_data(joined)),
