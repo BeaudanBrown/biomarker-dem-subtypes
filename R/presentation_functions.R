@@ -510,9 +510,10 @@ vimp_overall <- function(df) {
 ## VIMP by sex
 
 vimp_by_sex <- function(df, sex) {
+  plan(multicore, workers = detectCores())
 
-  vimp_data <- read_data() |>
-    filter(female = ifelse(sex=="female", 1, 0) & Diagnosis_combined != "Control") |>
+  vimp_data <- df |>
+    filter(female == ifelse(sex == "female", 1, 0) & Diagnosis_combined != "Control") |>
     select(
       Diagnosis_combined,
       age_combined,
@@ -534,7 +535,7 @@ vimp_by_sex <- function(df, sex) {
       vimp_function_par(
         data = vimp_data,
         outcome_subtype = outcome,
-        stratification = ifelse(sex=="female", "female", "male")
+        stratification = ifelse(sex == "female", "female", "male")
       )$mat |>
         select(c(s, est, test))
     }

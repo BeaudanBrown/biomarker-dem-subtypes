@@ -46,7 +46,8 @@ tar_option_set(
     "e1071",
     "class",
     "patchwork",
-    "tidyverse"
+    "tidyverse",
+    "parallel"
   ),
   format = "qs"
 )
