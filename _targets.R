@@ -97,15 +97,15 @@ list(
   tar_target(vimp_females, vimp_by_sex(df, "female")),
   # Variable importance for males
   tar_target(vimp_males, vimp_by_sex(df, "male")),
-  # Marker subset for AD
+  # Marker subset for full cohort
   tar_target(subset_data, all_subset_data(df)),
   tar_target(subset_plots, all_subset_plots(subset_data)),
-
+  # Marker subset for men
   tar_target(subset_data_men, all_subset_data(df, sex = "male")),
   tar_target(subset_plots_men, all_subset_plots(subset_data_men, extra_title = " - Men")),
-
+  # Marker subset for women
   tar_target(subset_data_women, all_subset_data(df, sex = "female")),
   tar_target(subset_plots_women, all_subset_plots(subset_data_women, extra_title = " - Women")),
-
+  # Quarto document for results
   tar_quarto(plots_and_corrs, path = "./R/plots_and_corrs.qmd", quiet = FALSE)
 )
