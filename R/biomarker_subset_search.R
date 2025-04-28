@@ -1,15 +1,45 @@
 
-plot_auc_steps <- function(data, outcome, extra_title = "") {
-
+plot_auc_steps <- function(data, outcome, extra_title = "", use_cdr = TRUE) {
   # Order by step
   data <- data %>% arrange(step)
 
-  labels <- map(data$model_vars, function(vars) {
-    vars <- lapply(vars, function(v) {
-      ifelse(is.na(v), "Age\nSex", v)
-    })
-    return(paste(vars, collapse = "\n"))
-  })
+  # Get the removal order from the data
+  removed_vars_order <- data %>%
+    filter(removed_var != "Full") %>%
+    arrange(step) %>%
+    pull(removed_var)
+
+  # Create a fixed list of all variables, ordered by removal (reverse order)
+  # Last removed at the top, first removed at the bottom, with covariates at the very bottom
+  all_vars <- c(
+    rev(removed_vars_order),  # Biomarkers in reverse removal order
+    "Age",                    # Covariates at the bottom
+    "Sex"
+  )
+  if (use_cdr) {
+    all_vars <- c(all_vars, "CDR")
+  }
+
+  create_step_labels <- function(step) {
+    if (step == 0) {
+      # At step 0, all biomarkers are active
+      active_vars <- all_vars
+    } else {
+      # Variables removed up to this step
+      removed_up_to_step <- data %>%
+        filter(step > 0, step <= !!step) %>%
+        pull(removed_var)
+
+      # Active variables
+      active_vars <- setdiff(all_vars, removed_up_to_step)
+    }
+
+    # Join active variables with newlines
+    paste(active_vars, collapse = "\n")
+  }
+
+  # Create labels for each step
+  labels <- map_chr(data$step, create_step_labels)
 
   # Create the plot
   p <- ggplot(data, aes(x = step, y = auc)) +
@@ -22,9 +52,10 @@ plot_auc_steps <- function(data, outcome, extra_title = "") {
     ) +
     theme_bw() +
     theme(
-      plot.title = element_text(size = 12, face = "bold"),
-      axis.title = element_text(size = 12),
-      axis.text = element_text(size = 10),
+      plot.title = element_text(size = 10, face = "bold"),
+      axis.title = element_text(size = 10),
+      axis.text.y = element_text(size = 8),
+      axis.text.x = element_text(size = 8),
       panel.grid.minor = element_blank(),
       legend.position = "none"
     ) +
@@ -67,6 +98,8 @@ build_path <- function(full_path, ref_auc) {
   get_remaining_vars <- function(step, removed_vars) {
     if (step == 0) {
       return(all_vars)
+    } else if (step == length(all_vars)) {
+      return(NA)
     } else {
       return(setdiff(all_vars, removed_vars[1:step]))
     }

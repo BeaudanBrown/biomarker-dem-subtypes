@@ -120,15 +120,15 @@ all_subset_data <- function(data, sex_strat = "", use_cdr = FALSE) {
 all_subset_plots <- function(data, extra_title = "", use_cdr = FALSE) {
   ad_title <- paste0(extra_title, " - n = ", data$ad$n)
   ad_path <- build_path(data$ad$path, data$ad$reference_auc)
-  ad_plot <- plot_auc_steps(ad_path, "Alzheimer's", ad_title)
+  ad_plot <- plot_auc_steps(ad_path, "Alzheimer's", ad_title, use_cdr = use_cdr)
 
   ftd_title <- paste0(extra_title, " - n = ", data$ftd$n)
   ftd_path <- build_path(data$ftd$path, data$ftd$reference_auc)
-  ftd_plot <- plot_auc_steps(ftd_path, "Frontotermporal", ftd_title)
+  ftd_plot <- plot_auc_steps(ftd_path, "Frontotermporal", ftd_title, use_cdr = use_cdr)
 
   lbd_title <- paste0(extra_title, " - n = ", data$lbd$n)
   lbd_path <- build_path(data$lbd$path, data$lbd$reference_auc)
-  lbd_plot <- plot_auc_steps(lbd_path, "Lewy bodies", lbd_title)
+  lbd_plot <- plot_auc_steps(lbd_path, "Lewy bodies", lbd_title, use_cdr = use_cdr)
   list(ad = ad_plot, ftd = ftd_plot, lbd = lbd_plot)
 }
 

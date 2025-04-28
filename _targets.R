@@ -109,7 +109,7 @@ list(
 
   # Marker subset for full cohort with cdr
   tar_target(subset_data_cdr, all_subset_data(df, use_cdr = TRUE)),
-  tar_target(subset_plots_cdr, all_subset_plots(subset_data_cdr)),
+  tar_target(subset_plots_cdr, all_subset_plots(subset_data_cdr, use_cdr = TRUE)),
   # Quarto document for results
   tar_quarto(plots_and_corrs, path = "./R/plots_and_corrs.qmd", quiet = FALSE)
 )
