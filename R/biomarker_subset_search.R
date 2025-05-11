@@ -1,4 +1,3 @@
-
 plot_auc_steps <- function(data, outcome, extra_title = "", use_cdr = TRUE) {
   # Order by step
   data <- data %>% arrange(step)
@@ -12,8 +11,8 @@ plot_auc_steps <- function(data, outcome, extra_title = "", use_cdr = TRUE) {
   # Create a fixed list of all variables, ordered by removal (reverse order)
   # Last removed at the top, first removed at the bottom, with covariates at the very bottom
   all_vars <- c(
-    rev(removed_vars_order),  # Biomarkers in reverse removal order
-    "Age",                    # Covariates at the bottom
+    rev(removed_vars_order), # Biomarkers in reverse removal order
+    "Age", # Covariates at the bottom
     "Sex"
   )
   if (use_cdr) {
@@ -64,7 +63,10 @@ plot_auc_steps <- function(data, outcome, extra_title = "", use_cdr = TRUE) {
       labels = labels,
       minor_breaks = NULL
     ) +
-    scale_y_continuous(limits = c(0.5, 1), breaks = c(0.5, 0.6, 0.7, 0.8, 0.9, 1))
+    scale_y_continuous(
+      limits = c(0.5, 1),
+      breaks = c(0.5, 0.6, 0.7, 0.8, 0.9, 1)
+    )
 
   return(p)
 }
@@ -110,7 +112,7 @@ build_path <- function(full_path, ref_auc) {
   })
 
   # Extract removed variables in order
-  removed_vars_in_order <- map_chr(best_path, ~.x$removed_var)
+  removed_vars_in_order <- map_chr(best_path, ~ .x$removed_var)
 
   result1 <- best_path %>%
     map2_dfr(seq_along(.), function(tibble, index) {
@@ -121,7 +123,8 @@ build_path <- function(full_path, ref_auc) {
       auc = ref_auc$cvAUC,
       cil = ref_auc$ci[[1]],
       ciu = ref_auc$ci[[2]],
-      step = 0) |>
+      step = 0
+    ) |>
     arrange(step) |>
     mutate(
       raw_removed_var = removed_var,
@@ -138,7 +141,7 @@ build_path <- function(full_path, ref_auc) {
         return(remaining_display)
       })
     ) |>
-    select(-raw_removed_var)  # Remove the temporary column
+    select(-raw_removed_var) # Remove the temporary column
 
   return(result1)
 }

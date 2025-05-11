@@ -1,4 +1,3 @@
-
 build_path_forward <- function(full_path, ref_auc) {
   all_vars <- c(
     "mean_elisa",
@@ -28,7 +27,7 @@ build_path_forward <- function(full_path, ref_auc) {
   # Function to get included variables at each step
   get_included_vars <- function(step, added_vars) {
     if (step == 0) {
-      return(character(0))  # Start with no variables
+      return(character(0)) # Start with no variables
     } else {
       return(added_vars[1:step])
     }
@@ -39,7 +38,7 @@ build_path_forward <- function(full_path, ref_auc) {
   })
 
   # Extract added variables in order
-  added_vars_in_order <- map_chr(best_path, ~.x$added_var)
+  added_vars_in_order <- map_chr(best_path, ~ .x$added_var)
 
   base_auc <- best_path[[1]]$auc
 
@@ -64,7 +63,7 @@ build_path_forward <- function(full_path, ref_auc) {
       })
     ) |>
     # Rename columns to reflect forward search
-    select(-raw_added_var)  # Remove the temporary column
+    select(-raw_added_var) # Remove the temporary column
 
   return(result1)
 }
@@ -116,7 +115,6 @@ forward_search <- function(data, outcome, reference) {
   )
 
   while (preds_added <= total_preds) {
-
     # Variables not yet in the model
     remaining_vars <- setdiff(all_pred_vars, names(current_data))
 
@@ -157,7 +155,10 @@ forward_search <- function(data, outcome, reference) {
       data %>% select(all_of(to_add))
     )
 
-    result[[preds_added]] <- list(vars = colnames(current_data), auc = best_auc_var)
+    result[[preds_added]] <- list(
+      vars = colnames(current_data),
+      auc = best_auc_var
+    )
   }
 
   # Calculate reference model (full model) AUC
@@ -183,7 +184,7 @@ forward_search <- function(data, outcome, reference) {
   final_model <-
     SuperLearner(
       Y = Y,
-      X = X,  # Same as full model
+      X = X, # Same as full model
       family = binomial(),
       SL.library = SL.library,
       cvControl = list(V = 10, stratifyCV = TRUE)

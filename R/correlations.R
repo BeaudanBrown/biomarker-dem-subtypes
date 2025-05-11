@@ -5,11 +5,12 @@ standardise <- function(x) {
 }
 
 prepare <- function(df) {
-
   washington <- df |>
     filter(Site == "Washington") |>
     mutate(
-      mean_ab42_ab40_ratio = standardise(ifelse(mean_ab42_ab40_ratio > 0.5, NA,
+      mean_ab42_ab40_ratio = standardise(ifelse(
+        mean_ab42_ab40_ratio > 0.5,
+        NA,
         mean_ab42_ab40_ratio
       )),
       mean_ab40 = standardise(ifelse(mean_ab40 > 500, NA, mean_ab40)),
@@ -51,11 +52,7 @@ inflam_cdr <- function(df, diagnosis = NULL) {
       lm(
         as.formula(paste0(
           "cdr ~ ",
-          paste(marker,
-            "age",
-            "female",
-            sep = " + "
-          )
+          paste(marker, "age", "female", sep = " + ")
         )),
         data = _
       ) |>
@@ -71,11 +68,7 @@ inflam_cdr <- function(df, diagnosis = NULL) {
       lm(
         as.formula(paste0(
           "MMSE ~ ",
-          paste(marker,
-            "age",
-            "female",
-            sep = " + "
-          )
+          paste(marker, "age", "female", sep = " + ")
         )),
         data = _
       ) |>
@@ -95,7 +88,10 @@ inflam_cdr <- function(df, diagnosis = NULL) {
     "mean_ptau181",
     "mean_ptau217"
   )
-  return(list(mmse = sapply(markers, get_mmse_corr), cdr = sapply(markers, get_cdr_corr)))
+  return(list(
+    mmse = sapply(markers, get_mmse_corr),
+    cdr = sapply(markers, get_cdr_corr)
+  ))
 }
 
 csf_corr <- function(df, diagnosis = NULL) {
@@ -109,12 +105,9 @@ csf_corr <- function(df, diagnosis = NULL) {
     ptau_coef <- washington |>
       lm(
         as.formula(paste0(
-          csf_marker, " ~ ",
-          paste("mean_ptau217",
-            "age",
-            "female",
-            sep = " + "
-          )
+          csf_marker,
+          " ~ ",
+          paste("mean_ptau217", "age", "female", sep = " + ")
         )),
         data = _
       ) |>
@@ -125,7 +118,10 @@ csf_corr <- function(df, diagnosis = NULL) {
   csf_markers <- washington |>
     select(CSF_AB_Ratio) |>
     names()
-  return(list(n = nrow(washington), coefs = sapply(csf_markers, get_ptau_csf_corr)))
+  return(list(
+    n = nrow(washington),
+    coefs = sapply(csf_markers, get_ptau_csf_corr)
+  ))
 }
 
 pet_corr <- function(df, diagnosis = NULL) {
@@ -150,30 +146,32 @@ pet_corr <- function(df, diagnosis = NULL) {
     )
   n <- nrow(pet_data)
 
-  coefs <- sapply(c(
-    "zscore",
-    "raw_suvr",
-    "centiloid"
-  ), function(outcome) {
-    coefs <- lm(
-      as.formula(paste0(
-        outcome,
-        " ~ ",
-        paste(
-          "mean_ptau217",
-          "age",
-          "female",
-          sep = " + "
-        )
-      )),
-      data = pet_data
-    ) |>
-      coef()
-    return(coefs[["mean_ptau217"]])
-  })
+  coefs <- sapply(
+    c(
+      "zscore",
+      "raw_suvr",
+      "centiloid"
+    ),
+    function(outcome) {
+      coefs <- lm(
+        as.formula(paste0(
+          outcome,
+          " ~ ",
+          paste(
+            "mean_ptau217",
+            "age",
+            "female",
+            sep = " + "
+          )
+        )),
+        data = pet_data
+      ) |>
+        coef()
+      return(coefs[["mean_ptau217"]])
+    }
+  )
   return(list(n = n, coefs = coefs))
 }
-
 
 # 1. correlate each inflammatory marker (CD14, YKL, and GFAP) with CDR score and MMSE in the Wash U data only
 # 2. correlate pTau217 with CSF biomarkers (which CSF biomarkers, AB ratio) in Wash U

@@ -2,14 +2,14 @@
 
 prepare_data <- function(sheet_name, marker_name) {
   df <-
-    read_excel(file.path(data_dir, Sys.getenv("ADDF_FILE")),
+    read_excel(
+      file.path(data_dir, Sys.getenv("ADDF_FILE")),
       sheet = sheet_name,
       guess_max = 100000,
     )
 
   setnames(df, "Sample", "Sample_Barcode", skip_absent = TRUE)
   setnames(df, "Sample ID", "Sample_Barcode", skip_absent = TRUE)
-
 
   setnames(df, names(df), gsub(" ", "_", names(df)))
   setnames(df, names(df), gsub("\\.", "", names(df)))
@@ -27,7 +27,8 @@ prepare_data <- function(sheet_name, marker_name) {
   # if sample_barcode has an asteriks, add in dilution_note
 
   df[[paste0(marker_name, "Dilution_note")]] <-
-    ifelse(str_detect(df$Sample_Barcode, "\\*"),
+    ifelse(
+      str_detect(df$Sample_Barcode, "\\*"),
       "indicates diluted 1:4... (see excel)",
       NA_character_
     )

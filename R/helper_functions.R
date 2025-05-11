@@ -12,7 +12,8 @@ auroc <- function(data, outcome, reference, nfolds = 5) {
 
   data <- data |> select(-Diagnosis_combined)
 
-  folds <- make_folds(nrow(data),
+  folds <- make_folds(
+    nrow(data),
     fold_fun = folds_vfold,
     V = nfolds,
     strata_ids = data$Y
@@ -55,7 +56,6 @@ predict_status <- function(data, nfolds) {
     SL.library = ifelse(ncol(train_X) == 1, univariate_library, SL.library),
     cvControl = list(V = nfolds, stratifyCV = TRUE)
   )
-
 
   pred_vars <- names(train_X)
 
@@ -110,12 +110,15 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
     TPR = TPR,
     FPR = FPR
   ) |>
-    mutate(comparison = paste0("LBD vs FTD (AUC: ", round(AUC,2), ")")) |>
+    mutate(comparison = paste0("LBD vs FTD (AUC: ", round(AUC, 2), ")")) |>
     ggplot(aes(x = FPR, y = TPR, colour = comparison)) +
     geom_path(size = 1) +
     geom_abline(
-      slope = 1, intercept = 0,
-      linetype = "dashed", color = "black", alpha = 0.5
+      slope = 1,
+      intercept = 0,
+      linetype = "dashed",
+      color = "black",
+      alpha = 0.5
     ) +
     labs(
       x = "False Positive Rate (1 - Specificity)",
@@ -126,11 +129,12 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
     bayesplot::theme_default() +
     theme(legend.position = "bottom")
 
-
-
-  ggsave(paste0("plots/", title_text, ".png"),
+  ggsave(
+    paste0("plots/", title_text, ".png"),
     plot = plot,
-    width = 10, height = 10, bg = "white"
+    width = 10,
+    height = 10,
+    bg = "white"
   )
 
   return(plot)
@@ -141,8 +145,10 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
   # A helper function to extract the summary results from a single ROC
   extract_results <- function(roc_data) {
     AUC <- mean(map_vec(roc_data$aucs$results, function(a) mean(a$AUC)))
-    TPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$TPR)) / nfolds
-    FPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$FPR)) / nfolds
+    TPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$TPR)) /
+      nfolds
+    FPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$FPR)) /
+      nfolds
 
     data <- tibble(
       TPR = TPR,
@@ -160,21 +166,38 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
   # For each group calculate the average AUC and build a new label
   # The new label is created by taking the sprintf template from label_map
   groups <- unique(combined_data[["comparison"]])
-  new_levels <- sapply(groups, function(g) {
-    auc_val <- round(mean(combined_data[combined_data[["comparison"]] == g, "AUC"][[1]]), 2)
-    sprintf(label_map[[g]], auc_val)
-  }, simplify = TRUE, USE.NAMES = FALSE)
+  new_levels <- sapply(
+    groups,
+    function(g) {
+      auc_val <- round(
+        mean(combined_data[combined_data[["comparison"]] == g, "AUC"][[1]]),
+        2
+      )
+      sprintf(label_map[[g]], auc_val)
+    },
+    simplify = TRUE,
+    USE.NAMES = FALSE
+  )
 
   # Convert the grouping variable into a factor with the new labels
-  combined_data[["comparison"]] <- factor(combined_data[["comparison"]], levels = groups)
+  combined_data[["comparison"]] <- factor(
+    combined_data[["comparison"]],
+    levels = groups
+  )
   levels(combined_data[["comparison"]]) <- new_levels
 
   # Create the ROC plot
-  plot <- ggplot(combined_data, aes_string(x = "FPR", y = "TPR", colour = "comparison")) +
+  plot <- ggplot(
+    combined_data,
+    aes_string(x = "FPR", y = "TPR", colour = "comparison")
+  ) +
     geom_path(size = 1) +
     geom_abline(
-      slope = 1, intercept = 0,
-      linetype = "dashed", color = "black", alpha = 0.5
+      slope = 1,
+      intercept = 0,
+      linetype = "dashed",
+      color = "black",
+      alpha = 0.5
     ) +
     labs(
       x = "False Positive Rate (1 - Specificity)",
@@ -191,7 +214,9 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
   ggsave(
     filename = paste0("plots/", title_text, ".png"),
     plot = plot,
-    width = 13, height = 13, bg = "white"
+    width = 13,
+    height = 13,
+    bg = "white"
   )
 
   return(plot)
@@ -207,24 +232,28 @@ vimp_function_par <- function(data, outcome_subtype, stratification = "") {
   # Remove the outcome column from predictors
   X <- select(data, -Diagnosis_combined)
   # Parallelize over columns in X; note that each parallel call will then run cv_vim
-  vimp_list <- future_lapply(seq_len(ncol(X)), function(i) {
-    # Optionally: Instead of print, you could write to a log file to avoid console jumbles.
-    print("Processing predictor ", i)
-    message("Processing predictor ", i)
-    cv_vim(
-      Y = Y,
-      X = X,
-      indx = i,
-      type = "auc",
-      V = 5,
-      run_regression = TRUE,
-      SL.library = SL.library,
-      sample_splitting = FALSE,
-      stratified = TRUE,
-      cvControl = list(V = 5, stratifyCV = TRUE),
-      family = binomial()
-    )
-  }, future.seed = 1234)
+  vimp_list <- future_lapply(
+    seq_len(ncol(X)),
+    function(i) {
+      # Optionally: Instead of print, you could write to a log file to avoid console jumbles.
+      print("Processing predictor ", i)
+      message("Processing predictor ", i)
+      cv_vim(
+        Y = Y,
+        X = X,
+        indx = i,
+        type = "auc",
+        V = 5,
+        run_regression = TRUE,
+        SL.library = SL.library,
+        sample_splitting = FALSE,
+        stratified = TRUE,
+        cvControl = list(V = 5, stratifyCV = TRUE),
+        family = binomial()
+      )
+    },
+    future.seed = 1234
+  )
   # Merge results from each predictor (assuming merge_vim is associative)
   out <- Reduce(function(x, y) merge_vim(x, y), vimp_list)
   return(out)

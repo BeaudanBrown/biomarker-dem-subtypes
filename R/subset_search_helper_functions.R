@@ -10,7 +10,8 @@ get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
 
   Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
 
-  folds <- make_folds(nrow(data),
+  folds <- make_folds(
+    nrow(data),
     fold_fun = folds_vfold,
     V = nfolds,
     strata_ids = Y
@@ -23,16 +24,20 @@ get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
 
     reference_auc <- mean(auroc(data, outcome, reference)$AUC)
 
-    train_auc <- get_ref_sub_AUC(data = data[folds[[i]]$training_set, ],
+    train_auc <- get_ref_sub_AUC(
+      data = data[folds[[i]]$training_set, ],
       reference_model = reference_model,
       subset_model = subset_model,
       best_biomarkers = path[[length(path)]]$removed_var,
-      outcome = outcome)
-    valid_auc <- get_ref_sub_AUC(data = data[folds[[i]]$validation_set, ],
+      outcome = outcome
+    )
+    valid_auc <- get_ref_sub_AUC(
+      data = data[folds[[i]]$validation_set, ],
       reference_model = reference_model,
       subset_model = subset_model,
       best_biomarkers = path[[length(path)]]$removed_var,
-      outcome = outcome)
+      outcome = outcome
+    )
     print(mean(train_auc$reference_auc$AUC))
     print(mean(valid_auc$reference_auc$AUC))
     print("~~~~~~~~~~")
@@ -50,7 +55,8 @@ get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
 
   Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
 
-  folds <- make_folds(nrow(data),
+  folds <- make_folds(
+    nrow(data),
     fold_fun = folds_vfold,
     V = nfolds,
     strata_ids = Y
@@ -69,10 +75,7 @@ get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
 }
 
 cv_biomarker_subset <-
-  function(fold,
-           data,
-           outcome,
-           reference) {
+  function(fold, data, outcome, reference) {
     train_data <- as_tibble(training(data))
     valid_data <- as_tibble(validation(data))
 
@@ -83,14 +86,16 @@ cv_biomarker_subset <-
         reference = reference
       )
 
-    out$ref_sub_auc <- get_ref_sub_AUC(data = valid_data,
-                                       reference_model = out$reference_model,
-                                       subset_model = out$subset_model,
-                                       best_biomarkers = out$path[[length(out$path)]]$removed_var,
-                                       outcome = outcome)
+    out$ref_sub_auc <- get_ref_sub_AUC(
+      data = valid_data,
+      reference_model = out$reference_model,
+      subset_model = out$subset_model,
+      best_biomarkers = out$path[[length(out$path)]]$removed_var,
+      outcome = outcome
+    )
 
     return(out)
-}
+  }
 
 all_subset_data <- function(data, sex_strat = "", use_cdr = FALSE) {
   ad <- marker_subset(
@@ -124,16 +129,32 @@ all_subset_plots <- function(data, extra_title = "", use_cdr = FALSE) {
 
   ftd_title <- paste0(extra_title, " - n = ", data$ftd$n)
   ftd_path <- build_path(data$ftd$path, data$ftd$reference_auc)
-  ftd_plot <- plot_auc_steps(ftd_path, "Frontotermporal", ftd_title, use_cdr = use_cdr)
+  ftd_plot <- plot_auc_steps(
+    ftd_path,
+    "Frontotermporal",
+    ftd_title,
+    use_cdr = use_cdr
+  )
 
   lbd_title <- paste0(extra_title, " - n = ", data$lbd$n)
   lbd_path <- build_path(data$lbd$path, data$lbd$reference_auc)
-  lbd_plot <- plot_auc_steps(lbd_path, "Lewy bodies", lbd_title, use_cdr = use_cdr)
+  lbd_plot <- plot_auc_steps(
+    lbd_path,
+    "Lewy bodies",
+    lbd_title,
+    use_cdr = use_cdr
+  )
   list(ad = ad_plot, ftd = ftd_plot, lbd = lbd_plot)
 }
 
 
-marker_subset <- function(data, outcome, reference, sex_strat = "", use_cdr = FALSE) {
+marker_subset <- function(
+  data,
+  outcome,
+  reference,
+  sex_strat = "",
+  use_cdr = FALSE
+) {
   plan(multicore, workers = detectCores())
   set.seed(Sys.getenv("SEED"))
   if (sex_strat != "") {
@@ -166,7 +187,6 @@ marker_subset <- function(data, outcome, reference, sex_strat = "", use_cdr = FA
 ## Backwards search for best minimal subset of biomarkers
 
 backwards_search <- function(data, outcome, reference, threshold = 0.03) {
-
   # reference (full model) AUC
 
   auc_results <- auroc(data, outcome, reference)
@@ -189,7 +209,10 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
 
   while (preds_removed <= total_preds && smallest_auc_drop < threshold) {
     indices <-
-      which(!names(data) %in% c("age_combined", "female", "Diagnosis_combined", "cdr"))
+      which(
+        !names(data) %in%
+          c("age_combined", "female", "Diagnosis_combined", "cdr")
+      )
 
     get_submodel_auc <- function(i) {
       trim <- select(data, -names(data)[i])
@@ -268,7 +291,13 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
   ))
 }
 
-get_ref_sub_AUC <- function(data, reference_model, subset_model, best_biomarkers, outcome) {
+get_ref_sub_AUC <- function(
+  data,
+  reference_model,
+  subset_model,
+  best_biomarkers,
+  outcome
+) {
   all_markers <- names(select(data, -Diagnosis_combined))
   best_biomarkers <- c("age_combined", "female", best_biomarkers)
 
@@ -302,7 +331,8 @@ get_ref_sub_AUC <- function(data, reference_model, subset_model, best_biomarkers
     get_auc(
       data,
       all_markers,
-      reference_model)
+      reference_model
+    )
 
   # subset model AUC
 
@@ -310,7 +340,8 @@ get_ref_sub_AUC <- function(data, reference_model, subset_model, best_biomarkers
     get_auc(
       data,
       best_biomarkers,
-      subset_model)
+      subset_model
+    )
 
   return(list(
     reference_auc = reference_auc,

@@ -24,7 +24,8 @@ dem_names <- c(
 
 all_rocs <- function(df) {
   roc_df <-
-    df |> select(
+    df |>
+    select(
       Diagnosis_combined,
       age_combined,
       mean_elisa,
@@ -68,7 +69,8 @@ get_combined_roc <- function(roc_results) {
 
 rocs_by_sex <- function(df) {
   roc_df <-
-    df |> select(
+    df |>
+    select(
       Diagnosis_combined,
       age_combined,
       mean_elisa,
@@ -91,33 +93,30 @@ rocs_by_sex <- function(df) {
 
   #### AD ####
   ad_plot <- plot_roc_combined(
-    roc_list =
-      list(
-        MEN = sex_rec_results$men$AD_vs_Others$roc_result,
-        WOMEN = sex_rec_results$women$AD_vs_Others$roc_result
-      ),
+    roc_list = list(
+      MEN = sex_rec_results$men$AD_vs_Others$roc_result,
+      WOMEN = sex_rec_results$women$AD_vs_Others$roc_result
+    ),
     title_text = "AD vs other dementias",
     label_map = sex_label_map
   )
 
   #### LBD ####
   lbd_plot <- plot_roc_combined(
-    roc_list =
-      list(
-        MEN = sex_rec_results$men$LBD_vs_Others$roc_result,
-        WOMEN = sex_rec_results$women$LBD_vs_Others$roc_result
-      ),
+    roc_list = list(
+      MEN = sex_rec_results$men$LBD_vs_Others$roc_result,
+      WOMEN = sex_rec_results$women$LBD_vs_Others$roc_result
+    ),
     title_text = "LBD vs other dementias",
     label_map = sex_label_map
   )
 
   #### FTD ####
   ftd_plot <- plot_roc_combined(
-    roc_list =
-      list(
-        MEN = sex_rec_results$men$FTD_vs_Others$roc_result,
-        WOMEN = sex_rec_results$women$FTD_vs_Others$roc_result
-      ),
+    roc_list = list(
+      MEN = sex_rec_results$men$FTD_vs_Others$roc_result,
+      WOMEN = sex_rec_results$women$FTD_vs_Others$roc_result
+    ),
     title_text = "FTD vs other dementias",
     label_map = sex_label_map
   )
@@ -135,7 +134,8 @@ rocs_by_sex <- function(df) {
     select(Diagnosis_combined, Men, Women, Total)
 
   # If you want a prettier table for publication/reports
-  gender_diag_table <- kable(gender_diag_table,
+  gender_diag_table <- kable(
+    gender_diag_table,
     caption = "Distribution of men and women across diagnostic groups",
     col.names = c("Diagnosis", "Men N (%)", "Women N (%)", "Total")
   )
@@ -175,14 +175,21 @@ print_pet_table <- function(pet_output, caption) {
       "Centiloid" = "centiloid.mean_ptau217"
     )
 
-  knitr::kable(df, digits = 3, caption = paste0(caption, " (n = ", pet_output$n, ")"))
+  knitr::kable(
+    df,
+    digits = 3,
+    caption = paste0(caption, " (n = ", pet_output$n, ")")
+  )
 }
 
 ## MMSE table
 
 mmse_table <- function(df) {
   whole_inflam <- inflam_cdr(df)
-  Any_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
+  Any_inflam <- inflam_cdr(
+    df,
+    diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies")
+  )
   AD_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's"))
   FTD_inflam <- inflam_cdr(df, diagnosis = c("Frontotermporal"))
   LBD_inflam <- inflam_cdr(df, diagnosis = c("Lewy bodies"))
@@ -199,26 +206,31 @@ mmse_table <- function(df) {
     setNames(names(mmse_list)) |>
     rownames_to_column("Marker") |>
     relocate(Marker) |>
-    mutate(Marker = case_when(
-      Marker == "mean_elisa" ~ "CD14",
-      Marker == "mean_nfl" ~ "NfL",
-      Marker == "mean_ykl" ~ "YKL-40",
-      Marker == "mean_gfap" ~ "GFAP",
-      Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-      Marker == "mean_ab40" ~ "AB40",
-      Marker == "mean_ab42" ~ "AB42",
-      Marker == "mean_tdp" ~ "TDP-43",
-      Marker == "mean_ptau181" ~ "pTau-181",
-      Marker == "mean_ptau217" ~ "pTau-217",
-      TRUE ~ Marker
-    ))
+    mutate(
+      Marker = case_when(
+        Marker == "mean_elisa" ~ "CD14",
+        Marker == "mean_nfl" ~ "NfL",
+        Marker == "mean_ykl" ~ "YKL-40",
+        Marker == "mean_gfap" ~ "GFAP",
+        Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+        Marker == "mean_ab40" ~ "AB40",
+        Marker == "mean_ab42" ~ "AB42",
+        Marker == "mean_tdp" ~ "TDP-43",
+        Marker == "mean_ptau181" ~ "pTau-181",
+        Marker == "mean_ptau217" ~ "pTau-217",
+        TRUE ~ Marker
+      )
+    )
   table <-
-    knitr::kable(mmse, digits = 3, caption = "Inflamatory Markers and MMSE (age/sex adjusted)")
+    knitr::kable(
+      mmse,
+      digits = 3,
+      caption = "Inflamatory Markers and MMSE (age/sex adjusted)"
+    )
 
   plots <- list()
 
   for (marker in markers) {
-
     plots[[marker]] <-
       df |>
       rename(
@@ -249,9 +261,11 @@ mmse_table <- function(df) {
 ## CDR vs markers
 
 cdr_vs_markers <- function(df) {
-
   whole_inflam <- inflam_cdr(df)
-  Any_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
+  Any_inflam <- inflam_cdr(
+    df,
+    diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies")
+  )
   AD_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's"))
   FTD_inflam <- inflam_cdr(df, diagnosis = c("Frontotermporal"))
   LBD_inflam <- inflam_cdr(df, diagnosis = c("Lewy bodies"))
@@ -268,21 +282,27 @@ cdr_vs_markers <- function(df) {
     setNames(names(cdr_list)) |>
     rownames_to_column("Marker") |>
     relocate(Marker) |>
-    mutate(Marker = case_when(
-      Marker == "mean_elisa" ~ "CD14",
-      Marker == "mean_nfl" ~ "NfL",
-      Marker == "mean_ykl" ~ "YKL-40",
-      Marker == "mean_gfap" ~ "GFAP",
-      Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-      Marker == "mean_ab40" ~ "AB40",
-      Marker == "mean_ab42" ~ "AB42",
-      Marker == "mean_tdp" ~ "TDP-43",
-      Marker == "mean_ptau181" ~ "pTau-181",
-      Marker == "mean_ptau217" ~ "pTau-217",
-      TRUE ~ Marker
-    ))
+    mutate(
+      Marker = case_when(
+        Marker == "mean_elisa" ~ "CD14",
+        Marker == "mean_nfl" ~ "NfL",
+        Marker == "mean_ykl" ~ "YKL-40",
+        Marker == "mean_gfap" ~ "GFAP",
+        Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+        Marker == "mean_ab40" ~ "AB40",
+        Marker == "mean_ab42" ~ "AB42",
+        Marker == "mean_tdp" ~ "TDP-43",
+        Marker == "mean_ptau181" ~ "pTau-181",
+        Marker == "mean_ptau217" ~ "pTau-217",
+        TRUE ~ Marker
+      )
+    )
   cdr_table <-
-    knitr::kable(cdr, digits = 3, caption = "Inflamatory Markers and CDR (age/sex adjusted)")
+    knitr::kable(
+      cdr,
+      digits = 3,
+      caption = "Inflamatory Markers and CDR (age/sex adjusted)"
+    )
 
   plots <- list()
 
@@ -316,41 +336,47 @@ cdr_vs_markers <- function(df) {
 
 ## CSF AB vs plasma markers plot
 
-csf_vs_markers <- function(df){
+csf_vs_markers <- function(df) {
   cohort_info <- list(
-  "All" = NULL,
-  "Any Dem" = c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
-  "Alzheimer's" = c("Alzheimer's"),
-  "Frontotermporal" = c("Frontotermporal"),
-  "Lewy bodies" = c("Lewy bodies")
-)
-
-# Loop over each cohort, run csf_corr(), extract the AB ratio + n,
-# and record the cohort name.
-results <- lapply(names(cohort_info), function(cohort) {
-  diagnosis <- cohort_info[[cohort]]
-  csf_out <- csf_corr(df, diagnosis = diagnosis)
-  tmp_df <- as.data.frame(t(csf_out$coefs))
-  ab_ratio <- round(tmp_df$CSF_AB_Ratio.mean_ptau217, 3)
-  list(Cohort = cohort, "AB42/AB40 Ratio" = ab_ratio, n = csf_out$n)
-})
-final_df <- do.call(rbind, results)
-knitr::kable(final_df, caption = "pTau-217 and CSF AB-Ratio (age/sex adjusted)")
-
-df |>
-  mutate(CSF_AB_Ratio = LUMIPULSE_CSF_AB42 / LUMIPULSE_CSF_AB40) |>
-  filter(!is.na(mean_ptau217) & !is.na(CSF_AB_Ratio)) |>
-  filter(Site == "Washington") |>
-  ggplot(aes(x = mean_ptau217, y = CSF_AB_Ratio, color = Diagnosis_combined)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(
-    color = "Diagnosis",
-    title = "CSF AB-Ratio vs pTau-217 (not age/sex adjusted)",
-    x = "Mean pTau-217",
-    y = "CSF AB-Ratio"
+    "All" = NULL,
+    "Any Dem" = c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
+    "Alzheimer's" = c("Alzheimer's"),
+    "Frontotermporal" = c("Frontotermporal"),
+    "Lewy bodies" = c("Lewy bodies")
   )
 
+  # Loop over each cohort, run csf_corr(), extract the AB ratio + n,
+  # and record the cohort name.
+  results <- lapply(names(cohort_info), function(cohort) {
+    diagnosis <- cohort_info[[cohort]]
+    csf_out <- csf_corr(df, diagnosis = diagnosis)
+    tmp_df <- as.data.frame(t(csf_out$coefs))
+    ab_ratio <- round(tmp_df$CSF_AB_Ratio.mean_ptau217, 3)
+    list(Cohort = cohort, "AB42/AB40 Ratio" = ab_ratio, n = csf_out$n)
+  })
+  final_df <- do.call(rbind, results)
+  knitr::kable(
+    final_df,
+    caption = "pTau-217 and CSF AB-Ratio (age/sex adjusted)"
+  )
+
+  df |>
+    mutate(CSF_AB_Ratio = LUMIPULSE_CSF_AB42 / LUMIPULSE_CSF_AB40) |>
+    filter(!is.na(mean_ptau217) & !is.na(CSF_AB_Ratio)) |>
+    filter(Site == "Washington") |>
+    ggplot(aes(
+      x = mean_ptau217,
+      y = CSF_AB_Ratio,
+      color = Diagnosis_combined
+    )) +
+    geom_point() +
+    geom_smooth(method = "lm", se = FALSE) +
+    labs(
+      color = "Diagnosis",
+      title = "CSF AB-Ratio vs pTau-217 (not age/sex adjusted)",
+      x = "Mean pTau-217",
+      y = "CSF AB-Ratio"
+    )
 }
 
 
@@ -358,7 +384,10 @@ df |>
 
 pet_vs_ptau <- function(df) {
   whole_pet <- pet_corr(df)
-  Any_pet <- pet_corr(df, diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies"))
+  Any_pet <- pet_corr(
+    df,
+    diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies")
+  )
   AD_pet <- pet_corr(df, diagnosis = c("Alzheimer's"))
   FTD_pet <- pet_corr(df, diagnosis = c("Frontotermporal"))
   LBD_pet <- pet_corr(df, diagnosis = c("Lewy bodies"))
@@ -378,16 +407,22 @@ pet_vs_ptau <- function(df) {
       paste0("FTD (n = ", LBD_pet$n, ")")
     )) |>
     rownames_to_column("Measure") |>
-    mutate(Measure = case_when(
-      Measure == "zscore" ~ "Z-score",
-      Measure == "raw_suvr" ~ "Raw SUVR",
-      Measure == "centiloid" ~ "Centiloid",
-      TRUE ~ Measure
-    )) |>
+    mutate(
+      Measure = case_when(
+        Measure == "zscore" ~ "Z-score",
+        Measure == "raw_suvr" ~ "Raw SUVR",
+        Measure == "centiloid" ~ "Centiloid",
+        TRUE ~ Measure
+      )
+    ) |>
     relocate(Measure)
 
   pet_table <-
-    knitr::kable(pet, digits = 3, caption = "PET Measures and pTau-217 (age/sex adjusted)")
+    knitr::kable(
+      pet,
+      digits = 3,
+      caption = "PET Measures and pTau-217 (age/sex adjusted)"
+    )
 
   plot1 <- df |>
     rename(
@@ -429,7 +464,6 @@ pet_vs_ptau <- function(df) {
 ## VIMP overall
 
 vimp_overall <- function(df) {
-
   vimp_data <- df |>
     filter(Diagnosis_combined != "Control") |>
     select(
@@ -483,19 +517,21 @@ vimp_overall <- function(df) {
           imp = paste0(imp, ifelse(test, "*", ""))
         ) |>
         select(-test) |>
-        mutate(var_name = case_when(
-          var_name == "mean_elisa" ~ "CD14",
-          var_name == "mean_nfl" ~ "NfL",
-          var_name == "mean_ykl" ~ "YKL-40",
-          var_name == "mean_gfap" ~ "GFAP",
-          var_name == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-          var_name == "mean_ab40" ~ "AB40",
-          var_name == "mean_ab42" ~ "AB42",
-          var_name == "mean_tdp" ~ "TDP-43",
-          var_name == "mean_ptau181" ~ "pTau-181",
-          var_name == "mean_ptau217" ~ "pTau-217",
-          TRUE ~ var_name
-        )),
+        mutate(
+          var_name = case_when(
+            var_name == "mean_elisa" ~ "CD14",
+            var_name == "mean_nfl" ~ "NfL",
+            var_name == "mean_ykl" ~ "YKL-40",
+            var_name == "mean_gfap" ~ "GFAP",
+            var_name == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+            var_name == "mean_ab40" ~ "AB40",
+            var_name == "mean_ab42" ~ "AB42",
+            var_name == "mean_tdp" ~ "TDP-43",
+            var_name == "mean_ptau181" ~ "pTau-181",
+            var_name == "mean_ptau217" ~ "pTau-217",
+            TRUE ~ var_name
+          )
+        ),
       col.names = c("Predictor", "Importance"),
       caption = paste0(
         "VImp for ",
@@ -517,7 +553,9 @@ vimp_by_sex <- function(df, sex) {
   plan(multicore, workers = detectCores())
 
   vimp_data <- df |>
-    filter(female == ifelse(sex == "female", 1, 0) & Diagnosis_combined != "Control") |>
+    filter(
+      female == ifelse(sex == "female", 1, 0) & Diagnosis_combined != "Control"
+    ) |>
     select(
       Diagnosis_combined,
       age_combined,
@@ -555,45 +593,51 @@ vimp_by_sex <- function(df, sex) {
   for (dem_name in dem_names) {
     tables[[dem_name]] <-
       kable(
-      cbind(
-        preds[as.numeric(vimp[[dem_name]]$s)],
-        vimp[[dem_name]]$est,
-        vimp[[dem_name]]$test
-      ) |>
-        as_tibble() |>
-        setNames(c(
-          "var_name",
-          "imp",
-          "test"
-        )) |>
-        mutate(imp = round(as.numeric(imp), 3)) |>
-        mutate(
-          imp = paste0(imp, ifelse(test, "*", ""))
+        cbind(
+          preds[as.numeric(vimp[[dem_name]]$s)],
+          vimp[[dem_name]]$est,
+          vimp[[dem_name]]$test
         ) |>
-        select(-test) |>
-        mutate(var_name = case_when(
-          var_name == "mean_elisa" ~ "CD14",
-          var_name == "mean_nfl" ~ "NfL",
-          var_name == "mean_ykl" ~ "YKL-40",
-          var_name == "mean_gfap" ~ "GFAP",
-          var_name == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-          var_name == "mean_ab40" ~ "AB40",
-          var_name == "mean_ab42" ~ "AB42",
-          var_name == "mean_tdp" ~ "TDP-43",
-          var_name == "mean_ptau181" ~ "pTau-181",
-          var_name == "mean_ptau217" ~ "pTau-217",
-          TRUE ~ var_name
-        )),
-      col.names = c("Predictor", "Importance"),
-      caption = paste0(
-        "VImp for ",
-        dem_name,
-        ifelse(sex == "female", " vs Other Dem in Females", " vs Other Dem in Males"),
-        " (n = ",
-        nrow(filter(vimp_data, Diagnosis_combined == dem_name)),
-        ")"
+          as_tibble() |>
+          setNames(c(
+            "var_name",
+            "imp",
+            "test"
+          )) |>
+          mutate(imp = round(as.numeric(imp), 3)) |>
+          mutate(
+            imp = paste0(imp, ifelse(test, "*", ""))
+          ) |>
+          select(-test) |>
+          mutate(
+            var_name = case_when(
+              var_name == "mean_elisa" ~ "CD14",
+              var_name == "mean_nfl" ~ "NfL",
+              var_name == "mean_ykl" ~ "YKL-40",
+              var_name == "mean_gfap" ~ "GFAP",
+              var_name == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+              var_name == "mean_ab40" ~ "AB40",
+              var_name == "mean_ab42" ~ "AB42",
+              var_name == "mean_tdp" ~ "TDP-43",
+              var_name == "mean_ptau181" ~ "pTau-181",
+              var_name == "mean_ptau217" ~ "pTau-217",
+              TRUE ~ var_name
+            )
+          ),
+        col.names = c("Predictor", "Importance"),
+        caption = paste0(
+          "VImp for ",
+          dem_name,
+          ifelse(
+            sex == "female",
+            " vs Other Dem in Females",
+            " vs Other Dem in Males"
+          ),
+          " (n = ",
+          nrow(filter(vimp_data, Diagnosis_combined == dem_name)),
+          ")"
+        )
       )
-    )
   }
 
   return(tables)
