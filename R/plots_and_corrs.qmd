@@ -60,7 +60,7 @@ tar_read(roc_results)$LBD_vs_FTD[["roc_plot"]]
 mmse <- tar_read(mmse_out)
 mmse[[1]]
 for (marker in mmse[[2]]) {
-  marker
+  print(marker)
 }
 
 ```
@@ -72,7 +72,7 @@ for (marker in mmse[[2]]) {
 cdr <- tar_read(cdr_out)
 cdr[[1]]
 for (marker in cdr[[2]]) {
-  marker
+  print(marker)
 }
 ```
 :::
@@ -90,7 +90,7 @@ tar_read(csf_out)
 pet <- tar_read(pet_ptau)
 pet[[1]]
 for (marker in pet[[2]]) {
-  marker
+  print(marker)
 }
 ```
 :::
@@ -151,11 +151,18 @@ plots_men <- tar_read(subset_plots_men)
 plots_women <- tar_read(subset_plots_women)
 ```
 
-## Biomarker subset path by sex
-```{r, fig.align="center", out.width="100%"}
-plots_men$ad + plots_women$ad
-plots_men$ftd + plots_women$ftd
-plots_men$lbd + plots_women$lbd
+## Biomarker subset path MEN
+```{r, fig.align="center", out.width="80%"}
+plots_men$ad
+plots_men$ftd
+plots_men$lbd
+```
+
+## Biomarker subset path WOMEN
+```{r, fig.align="center", out.width="80%"}
+plots_women$ad
+plots_women$ftd
+plots_women$lbd
 ```
 
 ## Biomarker subset path (cdr adjusted)
