@@ -89,9 +89,8 @@ tar_read(csf_out)
 ```{r}
 pet <- tar_read(pet_ptau)
 pet[[1]]
-for (marker in pet[[2]]) {
-  print(marker)
-}
+pet[[2]]
+pet[[3]]
 ```
 :::
 
