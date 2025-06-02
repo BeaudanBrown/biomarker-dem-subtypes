@@ -57,15 +57,25 @@ predict_status <- function(data, nfolds) {
 
   # fit superlearner
 
-  fit <- SuperLearner(
-    Y = train_Y,
-    X = train_X,
-    family = binomial(),
-    method = "method.AUC",
-    SL.library = SL.library,
-    # SL.library = ifelse(ncol(train_X) == 1, univariate_library, SL.library),
-    cvControl = list(V = 20, stratifyCV = TRUE)
-  )
+  if (ncol(train_X) == 1) {
+    fit <- SuperLearner(
+      Y = train_Y,
+      X = train_X,
+      family = binomial(),
+      method = "method.AUC",
+      SL.library = univariate_library,
+      cvControl = list(V = 20, stratifyCV = TRUE)
+    )
+  } else {
+    fit <- SuperLearner(
+      Y = train_Y,
+      X = train_X,
+      family = binomial(),
+      method = "method.AUC",
+      SL.library = SL.library,
+      cvControl = list(V = 20, stratifyCV = TRUE)
+    )
+  }
 
   print(fit$coef)
 

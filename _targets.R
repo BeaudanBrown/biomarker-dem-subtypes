@@ -4,6 +4,7 @@ library(future)
 
 dotenv::load_dot_env()
 data_dir <- Sys.getenv("DATA_DIR")
+nacc_dir <- Sys.getenv("NACC_DIR")
 cache_dir <- Sys.getenv("CACHE_DIR")
 
 # set target configs
@@ -100,6 +101,16 @@ list(
   tar_target(
     addf_cd14_file,
     file.path(data_dir, Sys.getenv("ADDF_CD14_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    addf_csf_file,
+    file.path(data_dir, Sys.getenv("ADDF_CSF_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    nacc_file,
+    file.path(nacc_dir, Sys.getenv("NACC_FILE")),
     format = "file"
   ),
   tar_target(
