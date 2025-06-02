@@ -22,23 +22,67 @@ dem_names <- c(
 
 ## Get all ROC curves
 
-all_rocs <- function(df) {
-  roc_df <-
-    df |>
-    select(
-      Diagnosis_combined,
-      age_combined,
-      mean_elisa,
-      mean_nfl,
-      mean_ykl,
-      mean_gfap,
-      mean_ab40,
-      mean_ab42,
-      mean_tdp,
-      mean_ptau181,
-      mean_ptau217,
-      female
-    )
+all_rocs <- function(df, with_fasting = "no") {
+  if (with_fasting == "yes") {
+    setDT(df)
+
+    df[,
+      fasting_combined := ifelse(
+        is.na(Fasting_Status),
+        Fasting_8_hours,
+        Fasting_Status
+      )
+    ][,
+      fasting_combined := ifelse(
+        fasting_combined == "Unknown" |
+          fasting_combined == "unknown",
+        NA,
+        fasting_combined
+      )
+    ][,
+      fasting_combined := ifelse(
+        fasting_combined == "non-fasted",
+        "No",
+        fasting_combined
+      )
+    ] |>
+      as_tibble()
+
+    roc_df <-
+      df |>
+      select(
+        Diagnosis_combined,
+        age_combined,
+        mean_elisa,
+        mean_nfl,
+        mean_ykl,
+        mean_gfap,
+        mean_ab40,
+        mean_ab42,
+        mean_tdp,
+        mean_ptau181,
+        mean_ptau217,
+        female,
+        fasting_combined
+      )
+  } else {
+    roc_df <-
+      df |>
+      select(
+        Diagnosis_combined,
+        age_combined,
+        mean_elisa,
+        mean_nfl,
+        mean_ykl,
+        mean_gfap,
+        mean_ab40,
+        mean_ab42,
+        mean_tdp,
+        mean_ptau181,
+        mean_ptau217,
+        female
+      )
+  }
 
   get_all_rocs(roc_df)
 }

@@ -76,6 +76,7 @@
               qs2
               styler
               tarchetypes
+              bartMachine
             ]);
         };
       }

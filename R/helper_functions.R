@@ -1,6 +1,6 @@
 ### Functions for biomarker descriptions
 
-auroc <- function(data, outcome, reference, nfolds = 5) {
+auroc <- function(data, outcome, reference, nfolds = 10) {
   # filter to outcome and reference
   set.seed(Sys.getenv("SEED"))
 
@@ -12,6 +12,14 @@ auroc <- function(data, outcome, reference, nfolds = 5) {
 
   data <- data |> select(-Diagnosis_combined)
 
+  # standardise continuous predictors and outcomes
+  contvars <- names(data)[sapply(data, function(col) length(unique(col)) > 5)]
+  std <- function(x) {
+    (x - mean(x, na.rm = T)) / sd(x, na.rm = T)
+  }
+  data <- mutate(data, across(all_of(contvars), std))
+
+  # CV
   folds <- make_folds(
     nrow(data),
     fold_fun = folds_vfold,
@@ -53,9 +61,13 @@ predict_status <- function(data, nfolds) {
     Y = train_Y,
     X = train_X,
     family = binomial(),
-    SL.library = ifelse(ncol(train_X) == 1, univariate_library, SL.library),
-    cvControl = list(V = nfolds, stratifyCV = TRUE)
+    method = "method.AUC",
+    SL.library = SL.library,
+    # SL.library = ifelse(ncol(train_X) == 1, univariate_library, SL.library),
+    cvControl = list(V = 20, stratifyCV = TRUE)
   )
+
+  print(fit$coef)
 
   pred_vars <- names(train_X)
 
@@ -248,7 +260,7 @@ vimp_function_par <- function(data, outcome_subtype, stratification = "") {
         SL.library = SL.library,
         sample_splitting = FALSE,
         stratified = TRUE,
-        cvControl = list(V = 5, stratifyCV = TRUE),
+        cvControl = list(V = 20, stratifyCV = TRUE),
         family = binomial()
       )
     },
@@ -279,7 +291,7 @@ vimp_function <- function(data, outcome_subtype) {
       SL.library = SL.library,
       sample_splitting = FALSE,
       stratified = TRUE,
-      cvControl = list(V = 10, stratifyCV = TRUE),
+      cvControl = list(V = 20, stratifyCV = TRUE),
       family = binomial()
     )
     if (i == 1) {

@@ -48,7 +48,8 @@ tar_option_set(
     "class",
     "patchwork",
     "tidyverse",
-    "parallel"
+    "parallel",
+    "bartMachine"
   ),
   format = "qs"
 )
@@ -59,26 +60,70 @@ tar_source()
 ## pipeline
 list(
   # declare input data
-  tar_target(pheno_file, file.path(data_dir, Sys.getenv("PHENO_FILE")), format = "file"),
-  tar_target(gilipin_file, file.path(data_dir, Sys.getenv("GILIPIN_FILE")), format = "file"),
-  tar_target(all_cases_file, file.path(data_dir, Sys.getenv("ALL_CASES_FILE")), format = "file"),
-  tar_target(addf_file, file.path(data_dir, Sys.getenv("ADDF_FILE")), format = "file"),
-  tar_target(texas_file, file.path(data_dir, Sys.getenv("TEXAL_PRELIM_FILE")), format = "file"),
-  tar_target(texas_file_update,
+  tar_target(
+    pheno_file,
+    file.path(data_dir, Sys.getenv("PHENO_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    gilipin_file,
+    file.path(data_dir, Sys.getenv("GILIPIN_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    all_cases_file,
+    file.path(data_dir, Sys.getenv("ALL_CASES_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    addf_file,
+    file.path(data_dir, Sys.getenv("ADDF_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    texas_file,
+    file.path(data_dir, Sys.getenv("TEXAL_PRELIM_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    texas_file_update,
     file.path(data_dir, Sys.getenv("TEXAL_UPDATE_FILE")),
-    format = "file"),
-  tar_target(addf_cd14_file, file.path(data_dir, Sys.getenv("ADDF_CD14_FILE")), format = "file"),
-  tar_target(wash_cogs_file, file.path(data_dir, Sys.getenv("NEW_WASH_COGS")), format = "file"),
+    format = "file"
+  ),
+  tar_target(
+    addf_cd14_file,
+    file.path(data_dir, Sys.getenv("ADDF_CD14_FILE")),
+    format = "file"
+  ),
+  tar_target(
+    wash_cogs_file,
+    file.path(data_dir, Sys.getenv("NEW_WASH_COGS")),
+    format = "file"
+  ),
   # merge input data
-  tar_target(joined, merge_datafiles(
-    pheno_file, gilipin_file, all_cases_file, addf_file, texas_file, texas_file_update, addf_cd14_file, wash_cogs_file
-  )),
+  tar_target(
+    joined,
+    merge_datafiles(
+      pheno_file,
+      gilipin_file,
+      all_cases_file,
+      addf_file,
+      texas_file,
+      texas_file_update,
+      addf_cd14_file,
+      wash_cogs_file
+    )
+  ),
   # clean data
   tar_target(df, clean_data(joined)),
   # get all ROC curves
   tar_target(roc_results, all_rocs(df)),
+  # get all ROC curves, including fasting status as covariate
+  tar_target(roc_results_fasting, all_rocs(df, with_fasting = "yes")),
   # get combined ROC curve
   tar_target(combined_roc, get_combined_roc(roc_results)),
+  # get combined ROC curve
+  tar_target(combined_roc_fasting, get_combined_roc(roc_results_fasting)),
   # get sex specific ROC curves
   tar_target(sex_specific_rocs, rocs_by_sex(df)),
   # get sex specific ROC curves
@@ -102,14 +147,23 @@ list(
   tar_target(subset_plots, all_subset_plots(subset_data)),
   # Marker subset for men
   tar_target(subset_data_men, all_subset_data(df, sex_strat = "male")),
-  tar_target(subset_plots_men, all_subset_plots(subset_data_men, extra_title = " - Males")),
+  tar_target(
+    subset_plots_men,
+    all_subset_plots(subset_data_men, extra_title = " - Males")
+  ),
   # Marker subset for women
   tar_target(subset_data_women, all_subset_data(df, sex_strat = "female")),
-  tar_target(subset_plots_women, all_subset_plots(subset_data_women, extra_title = " - Females")),
+  tar_target(
+    subset_plots_women,
+    all_subset_plots(subset_data_women, extra_title = " - Females")
+  ),
 
   # Marker subset for full cohort with cdr
   tar_target(subset_data_cdr, all_subset_data(df, use_cdr = TRUE)),
-  tar_target(subset_plots_cdr, all_subset_plots(subset_data_cdr, use_cdr = TRUE)),
+  tar_target(
+    subset_plots_cdr,
+    all_subset_plots(subset_data_cdr, use_cdr = TRUE)
+  ),
   # Quarto document for results
   tar_quarto(plots_and_corrs, path = "./R/plots_and_corrs.qmd", quiet = FALSE)
 )
