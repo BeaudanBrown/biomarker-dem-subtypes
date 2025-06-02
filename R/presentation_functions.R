@@ -594,8 +594,6 @@ vimp_overall <- function(df) {
 ## VIMP by sex
 
 vimp_by_sex <- function(df, stratification) {
-  plan(multicore, workers = detectCores())
-
   vimp_data <- df |>
     filter(
       female == ifelse(stratification == "female", 1, 0) &

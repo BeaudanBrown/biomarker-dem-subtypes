@@ -69,7 +69,6 @@ build_path_forward <- function(full_path, ref_auc) {
 }
 
 marker_subset_forward <- function(data, outcome, reference) {
-  plan(multicore, workers = detectCores())
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
   out <-
     forward_search(

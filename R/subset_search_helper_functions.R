@@ -155,7 +155,6 @@ marker_subset <- function(
   sex_strat = "",
   use_cdr = FALSE
 ) {
-  plan(multicore, workers = detectCores())
   set.seed(Sys.getenv("SEED"))
   if (sex_strat != "") {
     data <- data |>

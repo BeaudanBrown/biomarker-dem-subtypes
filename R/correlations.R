@@ -113,7 +113,7 @@ csf_corr <- function(df, diagnosis = NULL) {
       ) |>
       coef()
 
-    return(ptau_coef["mean_ptau217"])
+    ptau_coef["mean_ptau217"]
   }
   csf_markers <- washington |>
     select(CSF_AB_Ratio) |>

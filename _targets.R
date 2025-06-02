@@ -1,5 +1,6 @@
 library(targets)
 library(tarchetypes)
+library(future)
 
 dotenv::load_dot_env()
 data_dir <- Sys.getenv("DATA_DIR")
@@ -7,6 +8,8 @@ cache_dir <- Sys.getenv("CACHE_DIR")
 
 # set target configs
 tar_config_set(store = cache_dir)
+
+plan(multicore)
 
 # Set target options:
 tar_option_set(
