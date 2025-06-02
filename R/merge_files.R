@@ -8,7 +8,9 @@ merge_datafiles <- function(
   texas_file,
   texas_file_update,
   addf_cd14_file,
-  wash_cogs_file
+  wash_cogs_file,
+  addf_csf_file,
+  nacc_file
 ) {
   ### Read data ####
 
@@ -31,6 +33,21 @@ merge_datafiles <- function(
       cdr
     ) |>
     mutate(cdr = as.numeric(cdr))
+
+  # We merge this at the end because it uses a sample ID
+  nacc_cdr <- read.csv(nacc_file) |>
+    rename(
+      Sample_Barcode = "Biobank.ID",
+      cdr = "CDRGLOB",
+    ) |>
+    mutate(
+      Sample_Barcode = as.character(Sample_Barcode),
+      cdr = as.numeric(cdr),
+    ) |>
+    select(
+      Sample_Barcode,
+      cdr,
+    )
 
   pheno <- full_join(pheno, wash_cdr, by = "PA_ID", suffix = c("_x", "")) |>
     select(-cdr_x)
@@ -618,6 +635,41 @@ merge_datafiles <- function(
   new_cases$Sample_Barcode <- as.character(new_cases$Sample_Barcode)
 
   ### Latest CD14
+  addf_csf <- read_excel(addf_csf_file) |>
+    rename(
+      Sample_Barcode = "Biobank ID",
+    ) |>
+    mutate(
+      Sample_Barcode = as.character(Sample_Barcode),
+      Biomarker = case_when(
+        Biomarker == "Abeta-42" ~ "Abeta42",
+        Biomarker == "Total-Tau" ~ "Total-tau",
+        TRUE ~ Biomarker
+      )
+    ) |>
+    select(
+      Sample_Barcode,
+      Biomarker,
+      Result,
+    ) |>
+    pivot_wider(
+      names_from = Biomarker,
+      values_from = Result,
+      values_fill = NA
+    ) |>
+    rename(
+      CSF_ptau_ab42 = "p-Tau/Abeta42",
+      CSF_ab42 = "Abeta42",
+      CSF_total_tau = "Total-tau",
+      CSF_ptau_181 = "Phospho-Tau(181P)",
+    ) |>
+    mutate(
+      CSF_ptau_ab42 = as.numeric(CSF_ptau_ab42),
+      CSF_ab42 = as.numeric(CSF_ab42),
+      CSF_total_tau = as.numeric(CSF_total_tau),
+      CSF_ptau_181 = as.numeric(CSF_ptau_181),
+    )
+
   cd14 <- read_excel(addf_cd14_file) |>
     rename(
       Sample_Barcode = "Sample ID",
@@ -634,7 +686,9 @@ merge_datafiles <- function(
     joined |> select(-mean_elisa),
     new_cases,
     by = "Sample_Barcode"
-  )
+  ) |>
+    full_join(addf_csf, by = "Sample_Barcode") |>
+    rows_patch(nacc_cdr, unmatched = "ignore", by = "Sample_Barcode")
 
   # amalgamate age and sex variables
 

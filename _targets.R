@@ -129,7 +129,9 @@ list(
       texas_file,
       texas_file_update,
       addf_cd14_file,
-      wash_cogs_file
+      wash_cogs_file,
+      addf_csf_file,
+      nacc_file
     )
   ),
   # clean data
