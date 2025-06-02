@@ -34,31 +34,47 @@ SL.mgcv <- function(
   family,
   obsWeights,
   deg.gam = 10,
-  cts.num = 4,
+  cts.num = 5,
   ...
 ) {
   cts.x <- apply(X, 2, function(x) (length(unique(x)) > cts.num))
 
-  gam.model <- as.formula(paste(
-    "Y~",
-    paste(
+  if (sum(!cts.x) == 0) {
+    gam.model <- as.formula(paste(
+      "Y~",
       paste(
-        "s(",
-        colnames(X[, cts.x, drop = FALSE]),
-        ")",
-        sep = ""
+        paste(
+          "s(",
+          colnames(X[, cts.x, drop = FALSE]),
+          ")",
+          sep = ""
+        ),
+        collapse = "+"
+      )
+    ))
+  } else {
+    gam.model <- as.formula(paste(
+      "Y~",
+      paste(
+        paste(
+          "s(",
+          colnames(X[, cts.x, drop = FALSE]),
+          ")",
+          sep = ""
+        ),
+        collapse = "+"
       ),
-      collapse = "+"
-    ),
-    "+",
-    paste(
-      colnames(X[,
-        !cts.x,
-        drop = FALSE
-      ]),
-      collapse = "+"
-    )
-  ))
+      "+",
+      paste(
+        colnames(X[,
+          !cts.x,
+          drop = FALSE
+        ]),
+        collapse = "+"
+      )
+    ))
+  }
+
   fit.gam <- mgcv::gam(
     gam.model,
     data = X,

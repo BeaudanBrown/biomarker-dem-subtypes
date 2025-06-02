@@ -57,6 +57,10 @@ tar_option_set(
 # Run the R scripts in the R/ folder
 tar_source()
 
+# Set data table cores to 1
+
+data.table::setDTthreads(1)
+
 ## pipeline
 list(
   # declare input data
