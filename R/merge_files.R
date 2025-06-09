@@ -635,7 +635,13 @@ merge_datafiles <- function(
   new_cases$Sample_Barcode <- as.character(new_cases$Sample_Barcode)
 
   ### Latest CD14
-  addf_csf <- read_excel(addf_csf_file) |>
+  addf_csf <- read_excel(addf_csf_file, sheet = 2) |>
+    # results on page 1 just seem to be a subset?
+    # ptau 181 is between 8 and 120
+    # Abeta42 has multiple limits at lower and upper bound...
+    # 1700/2500
+    # 150/250
+    # Total tau is left censored <80
     rename(
       Sample_Barcode = "Biobank ID",
     ) |>
@@ -647,10 +653,23 @@ merge_datafiles <- function(
         TRUE ~ Biomarker
       )
     ) |>
+    # No clue why these are here
+    filter(
+      Biomarker != "Protein, Total",
+      Biomarker != "Glucose",
+    ) |>
     select(
       Sample_Barcode,
       Biomarker,
       Result,
+    ) |>
+    mutate(
+      Result = case_when(
+        Result == "n/a" ~ NA,
+        TRUE ~ Result
+      ),
+      # Need to figure out the upper and lower bound first
+      # Result = as.numeric(Result)
     ) |>
     pivot_wider(
       names_from = Biomarker,
@@ -662,12 +681,6 @@ merge_datafiles <- function(
       CSF_ab42 = "Abeta42",
       CSF_total_tau = "Total-tau",
       CSF_ptau_181 = "Phospho-Tau(181P)",
-    ) |>
-    mutate(
-      CSF_ptau_ab42 = as.numeric(CSF_ptau_ab42),
-      CSF_ab42 = as.numeric(CSF_ab42),
-      CSF_total_tau = as.numeric(CSF_total_tau),
-      CSF_ptau_181 = as.numeric(CSF_ptau_181),
     )
 
   cd14 <- read_excel(addf_cd14_file) |>
