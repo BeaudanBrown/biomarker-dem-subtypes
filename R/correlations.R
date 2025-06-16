@@ -124,6 +124,75 @@ csf_corr <- function(df, diagnosis = NULL) {
   ))
 }
 
+csf_rank_corr <- function(df, diagnosis = NULL) {
+  if (!is.null(diagnosis)) {
+    df <- df[df$Diagnosis_combined %in% diagnosis, ]
+  }
+
+  get_ptau_csf_corr <- function(df, csf_marker, plasma_marker) {
+    # complete observations
+    df <- filter(
+      df,
+      !is.na(.data[[csf_marker]]) & !is.na(.data[[plasma_marker]])
+    )
+
+    corr <- cor(
+      df[[csf_marker]],
+      df[[plasma_marker]],
+      use = "complete.obs",
+      method = "spearman"
+    )
+
+    corr <- data.frame(
+      csf_marker = csf_marker,
+      plasma_marker = plasma_marker,
+      corr = corr,
+      n = nrow(df)
+    )
+
+    return(corr)
+  }
+
+  grid <- expand_grid(
+    csf_marker = c(
+      "LUMIPULSE_CSF_AB42",
+      "LUMIPULSE_CSF_tTau",
+      "LUMIPULSE_CSF_pTau",
+      "LUMIPULSE_CSF_pTau_AB42"
+    ),
+    plasma_marker = c(
+      "mean_ptau181",
+      "mean_ab42",
+      "mean_nfl",
+      "mean_ab40",
+      "mean_gfap",
+      "mean_ykl",
+      "mean_tdp",
+      "mean_ptau217",
+      "mean_elisa"
+    )
+  )
+
+  out <- pmap(
+    list(
+      grid$csf_marker,
+      grid$plasma_marker
+    ),
+    get_ptau_csf_corr,
+    df = df
+  )
+
+  out <- bind_rows(out) |>
+    as_tibble() |>
+    arrange(csf_marker) |>
+    mutate(
+      csf_marker = gsub("LUMIPULSE_", "", csf_marker),
+      plasma_marker = gsub("mean_", "", plasma_marker)
+    )
+
+  return(out)
+}
+
 pet_corr <- function(df, diagnosis = NULL) {
   if (!is.null(diagnosis)) {
     df <- df[df$Diagnosis_combined %in% diagnosis, ]

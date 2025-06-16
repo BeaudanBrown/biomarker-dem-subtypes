@@ -136,6 +136,10 @@ list(
   ),
   # clean data
   tar_target(df, clean_data(joined)),
+  # add extra csf (for correlations)
+  tar_target(joined_with_csf, add_extra_csf(joined, addf_csf_file)),
+  # clean data
+  tar_target(df_with_csf, clean_data(joined_with_csf)),
   # get all ROC curves
   tar_target(roc_results, all_rocs(df)),
   # get all ROC curves, including fasting status as covariate
@@ -154,6 +158,8 @@ list(
   tar_target(cdr_out, cdr_vs_markers(df)),
   # CSF AB vs plasma markers
   tar_target(csf_out, csf_vs_markers(df)),
+  # CSF marker and plasma marker partial rank order correlations
+  tar_target(csf_rank_cors, csf_rank_corr(df_with_csf)),
   # PET AB vs PTAU-217
   tar_target(pet_ptau, pet_vs_ptau(df)),
   # Variable importance overall

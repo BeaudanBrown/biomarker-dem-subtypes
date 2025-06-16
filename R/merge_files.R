@@ -713,3 +713,78 @@ merge_datafiles <- function(
 
   return(joined)
 }
+
+## Adding extra CSF biomarker data
+
+add_censoring_info <- function(x) {
+  ifelse(grepl("[<>]", x), unlist(x), NA)
+}
+
+add_extra_csf <- function(joined, addf_csf_file) {
+  csf <- read_excel(addf_csf_file, sheet = 2) |>
+    rename(
+      Sample_Barcode = "Biobank ID",
+    ) |>
+    mutate(
+      Sample_Barcode = as.character(Sample_Barcode),
+      Biomarker = case_when(
+        Biomarker == "Abeta-42" ~ "Abeta42",
+        Biomarker == "Total-Tau" ~ "Total-tau",
+        TRUE ~ Biomarker
+      )
+    ) |>
+    mutate(
+      Result = case_when(
+        Result == "n/a" ~ NA,
+        TRUE ~ Result
+      )
+    ) |>
+    select(
+      Sample_Barcode,
+      Biomarker,
+      Result
+    ) |>
+    filter(
+      !is.na(Result) &
+        !Biomarker %in% c("p-Tau/Abeta42", "Protein, Total", "Glucose") &
+        !str_detect(Sample_Barcode, "&")
+    ) |>
+    mutate(Result_censor = add_censoring_info(Result)) |>
+    mutate(Result = as.numeric(gsub("[<>]", "", Result))) |>
+    # average replicates
+    summarise(
+      Result = mean(Result, na.rm = T),
+      Result_censor = max(Result_censor),
+      .by = c("Sample_Barcode", "Biomarker")
+    ) |>
+    pivot_wider(
+      id_cols = Sample_Barcode,
+      names_from = Biomarker,
+      names_sep = "_",
+      values_from = c("Result", "Result_censor")
+    ) |>
+    rename(
+      CSF_ab42 = "Result_Abeta42",
+      CSF_total_tau = "Result_Total-tau",
+      CSF_ptau_181 = "Result_Phospho-Tau(181P)",
+      CSF_ab42_censor = "Result_censor_Abeta42",
+      CSF_total_tau_censor = "Result_censor_Total-tau",
+      CSF_ptau_181_censor = "Result_censor_Phospho-Tau(181P)"
+    ) |>
+    full_join(
+      joined |>
+        select(-CSF_ab42, -CSF_total_tau, -CSF_ptau_181, -CSF_ptau_ab42),
+      by = "Sample_Barcode"
+    ) |>
+    mutate(
+      LUMIPULSE_CSF_AB42 = coalesce(LUMIPULSE_CSF_AB42, CSF_ab42),
+      LUMIPULSE_CSF_tTau = coalesce(LUMIPULSE_CSF_tTau, CSF_total_tau),
+      LUMIPULSE_CSF_pTau = coalesce(LUMIPULSE_CSF_pTau, CSF_ptau_181)
+    ) |>
+    mutate(LUMIPULSE_CSF_pTau_AB42 = LUMIPULSE_CSF_pTau / LUMIPULSE_CSF_AB42) |>
+    select(
+      -CSF_ab42,
+      -CSF_total_tau,
+      -CSF_ptau_181
+    )
+}
