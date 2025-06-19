@@ -289,8 +289,9 @@ mmse_table <- function(df) {
         "pTau-181" = "mean_ptau181",
         "pTau-217" = "mean_ptau217"
       ) |>
-      filter(!is.na(get(marker)) & !is.na(MMSE)) |>
       filter(Site == "Washington") |>
+      select(MMSE, Diagnosis_combined, as.name(marker)) |>
+      filter(!is.na(get(marker)) & !is.na(MMSE)) |>
       ggplot(aes(x = get(marker), y = MMSE, color = Diagnosis_combined)) +
       geom_point() +
       geom_smooth(method = "lm", se = FALSE) +
@@ -364,8 +365,9 @@ cdr_vs_markers <- function(df) {
         "pTau-181" = "mean_ptau181",
         "pTau-217" = "mean_ptau217"
       ) |>
-      filter(!is.na(get(marker)) & !is.na(cdr)) |>
       filter(Site == "Washington") |>
+      filter(!is.na(get(marker)) & !is.na(cdr)) |>
+      select(cdr, Diagnosis_combined, as.name(marker)) |>
       ggplot(aes(x = get(marker), y = cdr, color = Diagnosis_combined)) +
       geom_point() +
       geom_smooth(method = "lm", se = FALSE) +
