@@ -27,8 +27,10 @@ auroc <- function(data, outcome, reference, nfolds = 10) {
     strata_ids = data$Y
   )
 
+  print("test")
+  future::plan(future::sequential)
   out <-
-    cross_validate(
+    origami::cross_validate(
       folds = folds,
       cv_fun = cv_auroc,
       data = data,

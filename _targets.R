@@ -4,7 +4,6 @@ library(future)
 
 dotenv::load_dot_env()
 data_dir <- Sys.getenv("DATA_DIR")
-nacc_dir <- Sys.getenv("NACC_DIR")
 cache_dir <- Sys.getenv("CACHE_DIR")
 
 # set target configs
@@ -110,7 +109,7 @@ list(
   ),
   tar_target(
     nacc_file,
-    file.path(nacc_dir, Sys.getenv("NACC_FILE")),
+    file.path(data_dir, Sys.getenv("NACC_FILE")),
     format = "file"
   ),
   tar_target(
@@ -141,7 +140,7 @@ list(
   # clean data
   tar_target(df_with_csf, clean_data(joined_with_csf)),
   # get all ROC curves
-  tar_target(roc_results, all_rocs(df)),
+  tar_target(roc_results, all_rocs(df_with_csf)),
   # get all ROC curves, including fasting status as covariate
   tar_target(roc_results_fasting, all_rocs(df, with_fasting = "yes")),
   # get combined ROC curve
