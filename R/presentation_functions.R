@@ -20,9 +20,9 @@ dem_names <- c(
 )
 
 
-## Get all ROC curves
+## Data preparation for ROC analysis
 
-all_rocs <- function(df, with_fasting = "no") {
+prepare_roc_data <- function(df, with_fasting = "no") {
   if (with_fasting == "yes") {
     setDT(df)
 
@@ -84,6 +84,58 @@ all_rocs <- function(df, with_fasting = "no") {
       )
   }
 
+  return(roc_df)
+}
+
+## Individual ROC computation
+
+run_single_roc <- function(roc_data, comparison_type) {
+  roc_definitions <- list(
+    "AD_vs_Control" = list(
+      target = "Alzheimer's",
+      comparators = "Control",
+      title = "Alzheimer's vs control"
+    ),
+    "FTD_vs_Control" = list(
+      target = "Frontotermporal",
+      comparators = "Control",
+      title = "Frontotermporal vs control"
+    ),
+    "LBD_vs_Control" = list(
+      target = "Lewy bodies",
+      comparators = "Control",
+      title = "Lewy bodies vs control"
+    ),
+    "LBD_vs_FTD" = list(
+      target = "Lewy bodies",
+      comparators = "Frontotermporal",
+      title = "Lewy bodies vs frontotemporal"
+    ),
+    "AD_vs_Others" = list(
+      target = "Alzheimer's",
+      comparators = c("Frontotermporal", "Lewy bodies"),
+      title = "Alzheimer's vs other dementias"
+    ),
+    "LBD_vs_Others" = list(
+      target = "Lewy bodies",
+      comparators = c("Frontotermporal", "Alzheimer's"),
+      title = "Lewy bodies vs other dementias"
+    ),
+    "FTD_vs_Others" = list(
+      target = "Frontotermporal",
+      comparators = c("Lewy bodies", "Alzheimer's"),
+      title = "Frontotemporal vs other dementias"
+    )
+  )
+
+  def <- roc_definitions[[comparison_type]]
+  run_and_plot_roc(roc_data, def$target, def$comparators, def$title)
+}
+
+## Get all ROC curves
+
+all_rocs <- function(df, with_fasting = "no") {
+  roc_df <- prepare_roc_data(df, with_fasting)
   get_all_rocs(roc_df)
 }
 

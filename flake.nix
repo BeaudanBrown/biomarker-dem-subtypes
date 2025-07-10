@@ -71,6 +71,7 @@
               class
               patchwork
               targets
+              crew
               usethis
               visNetwork
               qs2

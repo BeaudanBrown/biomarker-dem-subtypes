@@ -1,6 +1,8 @@
 library(targets)
 library(tarchetypes)
 library(future)
+library(tidyverse)
+library(crew)
 
 dotenv::load_dot_env()
 data_dir <- Sys.getenv("DATA_DIR")
@@ -10,6 +12,9 @@ cache_dir <- Sys.getenv("CACHE_DIR")
 tar_config_set(store = cache_dir)
 
 plan(multicore)
+
+# Set up global crew controller
+crew_controller_global <- crew_controller_local(workers = 12)
 
 # Set target options:
 tar_option_set(
@@ -52,9 +57,11 @@ tar_option_set(
     "patchwork",
     "tidyverse",
     "parallel",
-    "bartMachine"
+    "bartMachine",
+    "crew"
   ),
-  format = "qs"
+  format = "qs",
+  controller = crew_controller_global
 )
 
 # Run the R scripts in the R/ folder
@@ -139,10 +146,70 @@ list(
   tar_target(joined_with_csf, add_extra_csf(joined, addf_csf_file)),
   # clean data
   tar_target(df_with_csf, clean_data(joined_with_csf)),
-  # get all ROC curves
-  tar_target(roc_results, all_rocs(df_with_csf)),
-  # get all ROC curves, including fasting status as covariate
-  tar_target(roc_results_fasting, all_rocs(df, with_fasting = "yes")),
+  # prepare ROC data
+  tar_target(roc_data_prepared, prepare_roc_data(df_with_csf)),
+  tar_target(
+    roc_data_prepared_fasting,
+    prepare_roc_data(df, with_fasting = "yes")
+  ),
+  # parallel ROC computations using tar_map
+  tar_map(
+    values = tibble(
+      comparison = c(
+        "AD_vs_Control",
+        "FTD_vs_Control",
+        "LBD_vs_Control",
+        "LBD_vs_FTD",
+        "AD_vs_Others",
+        "LBD_vs_Others",
+        "FTD_vs_Others"
+      )
+    ),
+    tar_target(roc_result, run_single_roc(roc_data_prepared, comparison))
+  ),
+  # parallel ROC computations with fasting
+  tar_map(
+    values = tibble(
+      comparison = c(
+        "AD_vs_Control",
+        "FTD_vs_Control",
+        "LBD_vs_Control",
+        "LBD_vs_FTD",
+        "AD_vs_Others",
+        "LBD_vs_Others",
+        "FTD_vs_Others"
+      )
+    ),
+    tar_target(
+      roc_result_fasting,
+      run_single_roc(roc_data_prepared_fasting, comparison)
+    )
+  ),
+  # combine parallel results
+  tar_target(
+    roc_results,
+    list(
+      AD_vs_Control = roc_result_AD_vs_Control,
+      FTD_vs_Control = roc_result_FTD_vs_Control,
+      LBD_vs_Control = roc_result_LBD_vs_Control,
+      LBD_vs_FTD = roc_result_LBD_vs_FTD,
+      AD_vs_Others = roc_result_AD_vs_Others,
+      LBD_vs_Others = roc_result_LBD_vs_Others,
+      FTD_vs_Others = roc_result_FTD_vs_Others
+    )
+  ),
+  tar_target(
+    roc_results_fasting,
+    list(
+      AD_vs_Control = roc_result_fasting_AD_vs_Control,
+      FTD_vs_Control = roc_result_fasting_FTD_vs_Control,
+      LBD_vs_Control = roc_result_fasting_LBD_vs_Control,
+      LBD_vs_FTD = roc_result_fasting_LBD_vs_FTD,
+      AD_vs_Others = roc_result_fasting_AD_vs_Others,
+      LBD_vs_Others = roc_result_fasting_LBD_vs_Others,
+      FTD_vs_Others = roc_result_fasting_FTD_vs_Others
+    )
+  ),
   # get combined ROC curve
   tar_target(combined_roc, get_combined_roc(roc_results)),
   # get combined ROC curve
