@@ -62,7 +62,8 @@ tar_option_set(
     "patchwork",
     "tidyverse",
     "parallel",
-    "bartMachine",
+    "dbarts",
+    "tmle",
     "crew"
   ),
   format = "qs",
@@ -236,9 +237,22 @@ list(
   # get combined ROC curve
   tar_target(combined_roc, get_combined_roc(roc_results)),
   # get combined ROC curve
-  # tar_target(combined_roc_fasting, get_combined_roc(roc_results_fasting)),
-  # get sex specific ROC curves
-  # tar_target(sex_specific_rocs, rocs_by_sex(df)),
+  tar_target(combined_roc_fasting, get_combined_roc(roc_results_fasting)),
+  # # get sex specific ROC curves
+  # tar_map(
+  #   values = tibble(
+  #     comparison = c(
+  #       "AD_vs_Control",
+  #       "FTD_vs_Control",
+  #       "LBD_vs_Control",
+  #       "LBD_vs_FTD",
+  #       "AD_vs_Others",
+  #       "LBD_vs_Others",
+  #       "FTD_vs_Others"
+  #     )
+  #   ),
+  #   tar_target(roc_result_men, run_single_roc(roc_data, comparison))
+  # ),
   # get sex specific ROC curves
   # tar_target(subtypes_control, subtypes_vs_control(roc_results)),
   # MMSE correlation table

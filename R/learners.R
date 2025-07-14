@@ -9,17 +9,12 @@ SL.library <- list(
   "SL.glm",
   "SL.glmnet",
   "SL.bayesglm",
-  "SL.bartMachine",
+  "tmle.SL.dbarts2",
   "SL.mgcv",
   "SL.earth",
   "SL.ranger",
-  "SL.ranger2",
   "SL.xgboost",
-  "SL.xgboost3",
-  c("SL.glm", "screen.glmnet"),
-  c("SL.xgboost", "screen.glmnet"),
-  c("SL.ranger", "screen.glmnet"),
-  c("SL.earth", "screen.glmnet")
+  "SL.xgboost2"
 )
 
 
@@ -120,12 +115,6 @@ SL.bayesglm <- function(Y, X, newX, family, obsWeights, ...) {
 
 ## xgboost
 
-SL.xgboost3 <- function(..., max_depth = 3, minobspernode = 3) {
+SL.xgboost2 <- function(..., max_depth = 2, minobspernode = 5) {
   SL.xgboost(..., max_depth = max_depth, minobspernode = minobspernode)
-}
-
-## random forest
-
-SL.ranger2 <- function(..., mtry = 3, min.node.size = 5) {
-  SL.ranger(..., mtry = mtry, min.node.size = min.node.size)
 }
