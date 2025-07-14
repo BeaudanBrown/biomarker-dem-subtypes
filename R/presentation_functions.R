@@ -341,10 +341,8 @@ mmse_table <- function(df) {
         "pTau-181" = "mean_ptau181",
         "pTau-217" = "mean_ptau217"
       ) |>
-      filter(Site == "Washington") |>
-      select(MMSE, Diagnosis_combined, as.name(marker)) |>
-      filter(!is.na(get(marker)) & !is.na(MMSE)) |>
-      ggplot(aes(x = get(marker), y = MMSE, color = Diagnosis_combined)) +
+      filter(!is.na(.data[[marker]]) & !is.na(MMSE)) |>
+      ggplot(aes(x = .data[[marker]], y = MMSE, color = Diagnosis_combined)) +
       geom_point() +
       geom_smooth(method = "lm", se = FALSE) +
       labs(color = "Diagnosis") +
@@ -417,10 +415,8 @@ cdr_vs_markers <- function(df) {
         "pTau-181" = "mean_ptau181",
         "pTau-217" = "mean_ptau217"
       ) |>
-      filter(Site == "Washington") |>
-      filter(!is.na(get(marker)) & !is.na(cdr)) |>
-      select(cdr, Diagnosis_combined, as.name(marker)) |>
-      ggplot(aes(x = get(marker), y = cdr, color = Diagnosis_combined)) +
+      filter(!is.na(.data[[marker]]) & !is.na(cdr)) |>
+      ggplot(aes(x = .data[[marker]], y = cdr, color = Diagnosis_combined)) +
       geom_point() +
       geom_smooth(method = "lm", se = FALSE) +
       labs(color = "Diagnosis") +
@@ -428,7 +424,7 @@ cdr_vs_markers <- function(df) {
       ggtitle(paste0(marker, " vs CDR (not adjusted)"))
   }
 
-  return(list(cdr_table = cdr_table, plots = plots))
+  list(cdr_table = cdr_table, plots = plots)
 }
 
 

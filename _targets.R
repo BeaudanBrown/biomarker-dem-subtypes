@@ -14,7 +14,12 @@ tar_config_set(store = cache_dir)
 plan(multicore)
 
 # Set up global crew controller
-crew_controller_global <- crew_controller_local(workers = 12)
+unlink("./logs/*", recursive = FALSE)
+crew_controller_global <- crew_controller_local(
+  options_local = crew_options_local(log_directory = "./logs"),
+  workers = 10
+)
+tar_option_set(error = "null")
 
 # Set target options:
 tar_option_set(
@@ -70,6 +75,24 @@ tar_source()
 # Set data table cores to 1
 
 data.table::setDTthreads(1)
+
+subset_comparisons <- bind_rows(
+  list(
+    comparison = "AD_vs_Others",
+    target_diagnosis = "Alzheimer's",
+    comparators = list(c("Lewy bodies", "Frontotermporal"))
+  ),
+  list(
+    comparison = "FTD_vs_Others",
+    target_diagnosis = "Frontotermporal",
+    comparators = list(c("Lewy bodies", "Alzheimer's"))
+  ),
+  list(
+    comparison = "LBD_vs_Others",
+    target_diagnosis = "Lewy bodies",
+    comparators = list(c("Alzheimer's", "Frontotermporal"))
+  )
+)
 
 ## pipeline
 list(
@@ -213,15 +236,15 @@ list(
   # get combined ROC curve
   tar_target(combined_roc, get_combined_roc(roc_results)),
   # get combined ROC curve
-  tar_target(combined_roc_fasting, get_combined_roc(roc_results_fasting)),
+  # tar_target(combined_roc_fasting, get_combined_roc(roc_results_fasting)),
   # get sex specific ROC curves
-  tar_target(sex_specific_rocs, rocs_by_sex(df)),
+  # tar_target(sex_specific_rocs, rocs_by_sex(df)),
   # get sex specific ROC curves
-  tar_target(subtypes_control, subtypes_vs_control(roc_results)),
+  # tar_target(subtypes_control, subtypes_vs_control(roc_results)),
   # MMSE correlation table
   tar_target(mmse_out, mmse_table(df)),
   # CDR correlation table
-  tar_target(cdr_out, cdr_vs_markers(df)),
+  tar_target(cdr_out, cdr_vs_markers(df_with_csf)),
   # CSF AB vs plasma markers
   tar_target(csf_out, csf_vs_markers(df)),
   # CSF marker and plasma marker partial rank order correlations
@@ -229,29 +252,107 @@ list(
   # PET AB vs PTAU-217
   tar_target(pet_ptau, pet_vs_ptau(df)),
   # Variable importance overall
-  tar_target(vimp_full, vimp_overall(df)),
+  # tar_target(vimp_full, vimp_overall(df)),
   # Variable importance for females
-  tar_target(vimp_females, vimp_by_sex(df, "female")),
+  # tar_target(vimp_females, vimp_by_sex(df, "female")),
   # Variable importance for males
-  tar_target(vimp_males, vimp_by_sex(df, "male")),
-  # Marker subset for full cohort
-  tar_target(subset_data, all_subset_data(df)),
+  # tar_target(vimp_males, vimp_by_sex(df, "male")),
+  # Parallel subset analysis for full cohort
+  tar_map(
+    values = subset_comparisons,
+    names = comparison,
+    tar_target(
+      subset_result,
+      run_single_subset(df, target_diagnosis, comparators)
+    )
+  ),
+  # Combine parallel results for backward compatibility
+  tar_target(
+    subset_data,
+    list(
+      ad = subset_result_AD_vs_Others,
+      ftd = subset_result_FTD_vs_Others,
+      lbd = subset_result_LBD_vs_Others
+    )
+  ),
   tar_target(subset_plots, all_subset_plots(subset_data)),
-  # Marker subset for men
-  tar_target(subset_data_men, all_subset_data(df, sex_strat = "male")),
+  # Parallel subset analysis for men
+  tar_map(
+    values = subset_comparisons,
+    names = comparison,
+    tar_target(
+      subset_result_men,
+      run_single_subset(
+        df,
+        target_diagnosis,
+        comparators,
+        sex_strat = "male"
+      )
+    )
+  ),
+
+  # Combine parallel results for men
+  tar_target(
+    subset_data_men,
+    list(
+      ad = subset_result_men_AD_vs_Others,
+      ftd = subset_result_men_FTD_vs_Others,
+      lbd = subset_result_men_LBD_vs_Others
+    )
+  ),
   tar_target(
     subset_plots_men,
     all_subset_plots(subset_data_men, extra_title = " - Males")
   ),
-  # Marker subset for women
-  tar_target(subset_data_women, all_subset_data(df, sex_strat = "female")),
+
+  # Parallel subset analysis for women
+  tar_map(
+    values = subset_comparisons,
+    names = comparison,
+    tar_target(
+      subset_result_women,
+      run_single_subset(
+        df,
+        target_diagnosis,
+        comparators,
+        sex_strat = "female"
+      )
+    )
+  ),
+
+  # Combine parallel results for women
+  tar_target(
+    subset_data_women,
+    list(
+      ad = subset_result_women_AD_vs_Others,
+      ftd = subset_result_women_FTD_vs_Others,
+      lbd = subset_result_women_LBD_vs_Others
+    )
+  ),
   tar_target(
     subset_plots_women,
     all_subset_plots(subset_data_women, extra_title = " - Females")
   ),
 
-  # Marker subset for full cohort with cdr
-  tar_target(subset_data_cdr, all_subset_data(df, use_cdr = TRUE)),
+  # Parallel subset analysis for CDR cohort
+  tar_map(
+    values = subset_comparisons,
+    names = comparison,
+    tar_target(
+      subset_result_cdr,
+      run_single_subset(df, target_diagnosis, comparators, use_cdr = TRUE)
+    )
+  ),
+
+  # Combine parallel results for CDR cohort
+  tar_target(
+    subset_data_cdr,
+    list(
+      ad = subset_result_cdr_AD_vs_Others,
+      ftd = subset_result_cdr_FTD_vs_Others,
+      lbd = subset_result_cdr_LBD_vs_Others
+    )
+  ),
   tar_target(
     subset_plots_cdr,
     all_subset_plots(subset_data_cdr, use_cdr = TRUE)

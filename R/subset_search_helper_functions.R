@@ -347,3 +347,41 @@ get_ref_sub_AUC <- function(
     subset_auc = subset_auc
   ))
 }
+
+## Helper functions for parallel subset analysis
+
+run_single_subset <- function(
+  data,
+  target_diagnosis,
+  comparators,
+  sex_strat = "",
+  use_cdr = FALSE
+) {
+  marker_subset(
+    data = data,
+    outcome = target_diagnosis,
+    reference = comparators,
+    sex_strat = sex_strat,
+    use_cdr = use_cdr
+  )
+}
+
+prepare_subset_data <- function(data, sex_strat = "", use_cdr = FALSE) {
+  if (sex_strat != "") {
+    data <- data |>
+      filter(female == ifelse(sex_strat == "female", 1, 0)) |>
+      select(-female)
+    vars <- c("Diagnosis_combined", "age_combined")
+  } else {
+    vars <- c("Diagnosis_combined", "age_combined", "female")
+  }
+
+  if (use_cdr) {
+    vars <- append(vars, c("cdr"))
+  }
+
+  data |>
+    select(all_of(vars), starts_with("mean_")) |>
+    select(-mean_ab42_ab40_ratio) |>
+    drop_na()
+}

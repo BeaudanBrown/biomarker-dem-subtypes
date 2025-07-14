@@ -115,7 +115,7 @@ SL.bayesglm <- function(Y, X, newX, family, obsWeights, ...) {
   fit <- list(object = fit.glm)
   out <- list(pred = pred, fit = fit)
   class(out$fit) <- c("SL.bayesglm")
-  return(out)
+  out
 }
 
 ## xgboost

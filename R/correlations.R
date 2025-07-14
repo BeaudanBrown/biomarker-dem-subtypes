@@ -1,12 +1,11 @@
 ## Functions for correlations
 
 standardise <- function(x) {
-  return((x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE))
+  (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
 }
 
 prepare <- function(df) {
-  washington <- df |>
-    filter(Site == "Washington") |>
+  df |>
     mutate(
       mean_ab42_ab40_ratio = standardise(ifelse(
         mean_ab42_ab40_ratio > 0.5,
@@ -35,7 +34,6 @@ prepare <- function(df) {
       "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
       "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
     )
-  return(washington)
 }
 
 
