@@ -1,0 +1,19 @@
+DATA_DIR=/s/Epi-Dementia/Pase-ED/Studies/ADDF/Data and Results/
+CACHE_DIR=/s/Epi-Dementia/Pase-ED/Studies/ADDF/Data and Results/.targets_beau/
+
+SEED=1234
+
+NACC_FILE=DATA FOR BEAU/ADDF NACC data 20May25_deidentified.csv
+
+ADDF_CSF_FILE=Data from texas downloaded April 1 2025/ADDF CSF biomarker data.xlsx
+ADDF_CD14_FILE=Data from texas downloaded April 1 2025/sCD-14 summary data_ADDF.xlsx
+ADDF_PRELIM_FILE=Data from texas downloaded April 1 2025/addf_prelim.csv
+
+NEW_WASH_COGS=WASH_CDR_SCORES.xlsx
+ADDF_FILE=ADDF results and master list_30Jan2025.xlsx
+PHENO_FILE=ADDF phenotype_02222024.xlsx
+GILIPIN_FILE=GILIPIN_ADDFPlasma_Manifest_Lab_20231107.xlsx
+ALL_CASES_FILE=ID_ALL_CASES_COMBINED.xlsx
+TEXAL_PRELIM_FILE=Demographic data Texas/ADDF preliminary dataset Jan 2025.xlsx
+TEXAL_UPDATE_FILE=Demographic data Texas/ADDF Jan 21 2025 update.xlsx
+MERGED_OUTPUT_FILE=merged_data/merged_all_vars_01_04_2025.csv
