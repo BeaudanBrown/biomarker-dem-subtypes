@@ -705,13 +705,17 @@ merge_datafiles <- function(
 
   # amalgamate age and sex variables
 
-  joined$age_combined <-
+  joined$age <-
     ifelse(is.na(joined$Age_at_draw), joined$AGE, joined$Age_at_draw)
 
-  joined$sex_combined <-
+  joined$sex <-
     ifelse(is.na(joined$sex), joined$SEX, joined$sex)
 
-  return(joined)
+  joined |>
+    rename(
+      "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
+      "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
+    )
 }
 
 ## Adding extra CSF biomarker data

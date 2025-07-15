@@ -52,7 +52,7 @@ prepare_roc_data <- function(df, with_fasting = "no") {
       df |>
       select(
         Diagnosis_combined,
-        age_combined,
+        age,
         mean_elisa,
         mean_nfl,
         mean_ykl,
@@ -70,7 +70,7 @@ prepare_roc_data <- function(df, with_fasting = "no") {
       df |>
       select(
         Diagnosis_combined,
-        age_combined,
+        age,
         mean_elisa,
         mean_nfl,
         mean_ykl,
@@ -168,7 +168,7 @@ rocs_by_sex <- function(df) {
     df |>
     select(
       Diagnosis_combined,
-      age_combined,
+      age,
       mean_elisa,
       mean_nfl,
       mean_ykl,
@@ -562,7 +562,7 @@ vimp_overall <- function(df) {
     filter(Diagnosis_combined != "Control") |>
     select(
       Diagnosis_combined,
-      age_combined,
+      age,
       mean_elisa,
       mean_nfl,
       mean_ykl,
@@ -651,7 +651,7 @@ vimp_by_sex <- function(df, stratification) {
     ) |>
     select(
       Diagnosis_combined,
-      age_combined,
+      age,
       mean_elisa,
       mean_nfl,
       mean_ykl,

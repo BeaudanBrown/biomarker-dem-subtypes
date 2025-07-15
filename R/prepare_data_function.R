@@ -36,6 +36,5 @@ prepare_data <- function(sheet_name, marker_name) {
   # if sample_barcode has an asteriks, remove
 
   df$Sample_Barcode <- as.character(gsub("\\*", "", df$Sample_Barcode))
-
-  return(df)
+  df
 }

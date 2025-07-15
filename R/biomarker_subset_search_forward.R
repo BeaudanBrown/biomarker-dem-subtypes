@@ -81,8 +81,8 @@ marker_subset_forward <- function(data, outcome, reference) {
 
 ## Forwards search
 forward_search <- function(data, outcome, reference) {
-  # Start with only demographic variables (age_combined, female)
-  base_vars <- c("age_combined", "female", "Diagnosis_combined")
+  # Start with only demographic variables (age, female)
+  base_vars <- c("age", "female", "Diagnosis_combined")
   start_data <- data %>% select(all_of(base_vars))
 
   # All potential predictor variables (those starting with "mean")

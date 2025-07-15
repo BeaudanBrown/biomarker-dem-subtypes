@@ -160,9 +160,9 @@ marker_subset <- function(
     data <- data |>
       filter(female == ifelse(sex_strat == "female", 1, 0)) |>
       select(-female)
-    vars <- c("Diagnosis_combined", "age_combined")
+    vars <- c("Diagnosis_combined", "age")
   } else {
-    vars <- c("Diagnosis_combined", "age_combined", "female")
+    vars <- c("Diagnosis_combined", "age", "female")
   }
   if (use_cdr) {
     vars <- append(vars, c("cdr"))
@@ -210,7 +210,7 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
     indices <-
       which(
         !names(data) %in%
-          c("age_combined", "female", "Diagnosis_combined", "cdr")
+          c("age", "female", "Diagnosis_combined", "cdr")
       )
 
     get_submodel_auc <- function(i) {
@@ -298,7 +298,7 @@ get_ref_sub_AUC <- function(
   outcome
 ) {
   all_markers <- names(select(data, -Diagnosis_combined))
-  best_biomarkers <- c("age_combined", "female", best_biomarkers)
+  best_biomarkers <- c("age", "female", best_biomarkers)
 
   get_auc <- function(data, predictors, model) {
     X <- select(data, all_of(predictors))
@@ -371,9 +371,9 @@ prepare_subset_data <- function(data, sex_strat = "", use_cdr = FALSE) {
     data <- data |>
       filter(female == ifelse(sex_strat == "female", 1, 0)) |>
       select(-female)
-    vars <- c("Diagnosis_combined", "age_combined")
+    vars <- c("Diagnosis_combined", "age")
   } else {
-    vars <- c("Diagnosis_combined", "age_combined", "female")
+    vars <- c("Diagnosis_combined", "age", "female")
   }
 
   if (use_cdr) {

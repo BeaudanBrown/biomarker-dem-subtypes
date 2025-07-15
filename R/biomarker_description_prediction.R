@@ -72,8 +72,8 @@ clean_data <- function(df, keep_cd14 = TRUE) {
 
   # set sex to factor
 
-  df$sex_combined <- as.factor(df$sex_combined)
-  df$female <- ifelse(df$sex_combined == "Female", 1, 0)
+  df$sex <- as.factor(df$sex)
+  df$female <- ifelse(df$sex == "Female", 1, 0)
 
   # AB42 to AB40 ratio
   df$mean_ab42_ab40_ratio <- df$mean_ab42 / df$mean_ab40
@@ -174,7 +174,7 @@ show_descriptives <- function(df) {
   df |>
     select(
       Diagnosis_combined,
-      age_combined,
+      age,
       female,
       Site,
       race_combined,
@@ -309,7 +309,7 @@ hide_vimp <- function() {
 
   vimp_data_men <-
     men |>
-    select(Diagnosis_combined, age_combined, starts_with("mean_"))
+    select(Diagnosis_combined, age, starts_with("mean_"))
 
   vimp_men <- lapply(
     c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
@@ -372,7 +372,7 @@ hide_vimp <- function() {
 
   vimp_data_women <-
     women |>
-    select(Diagnosis_combined, age_combined, starts_with("mean_"))
+    select(Diagnosis_combined, age, starts_with("mean_"))
 
   vimp_women <- lapply(
     c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
@@ -434,7 +434,7 @@ hide_vimp <- function() {
   #### All cohort ####
 
   vimp_data <- df |>
-    select(Diagnosis_combined, age_combined, female, starts_with("mean_"))
+    select(Diagnosis_combined, age, female, starts_with("mean_"))
 
   vimp_out <- future_lapply(
     c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
@@ -443,7 +443,7 @@ hide_vimp <- function() {
   )
 
   preds <- df |>
-    select(age_combined, female, starts_with("mean_")) |>
+    select(age, female, starts_with("mean_")) |>
     names()
 
   # AD
