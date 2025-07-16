@@ -70,6 +70,7 @@ get_adjusted_corr <- function(cohort, outcome, predictor) {
 
   tibble(
     cohort = cohort_name,
+    outcome = outcome,
     predictor = predictor,
     estimate = format_estimate(coef_predictor),
     p = format_pval(pval_predictor),
@@ -77,37 +78,40 @@ get_adjusted_corr <- function(cohort, outcome, predictor) {
   )
 }
 
-get_marker_table <- function(corr_data) {
-  corr_data <- corr_data |>
+make_beta_table <- function(
+  data,
+  id_col,
+  id_label
+) {
+  idq <- enquo(id_col)
+  id_nm <- quo_name(idq)
+
+  data <- data |>
     filter(cohort != "All Subtypes") |>
     group_by(cohort) |>
-    mutate(
-      cohort = glue::glue("{cohort} (n={max(n)})")
-    ) |>
+    mutate(cohort = glue::glue("{cohort} (n={max(n)})")) |>
     ungroup()
 
-  cohorts <- corr_data |>
-    dplyr::distinct(cohort) |>
-    dplyr::pull(cohort)
+  cohorts <- data |>
+    distinct(cohort) |>
+    pull(cohort)
   nc <- length(cohorts)
 
-  df_wide <- corr_data |>
-    tidyr::pivot_wider(
-      id_cols = predictor,
+  df_wide <- data |>
+    pivot_wider(
+      id_cols = !!idq,
       names_from = cohort,
       values_from = c(estimate, p),
       names_glue = "{cohort}_{.value}"
     )
 
   col_order <- c(
-    "predictor",
-    unlist(
-      lapply(cohorts, function(x) paste0(x, "_", c("estimate", "p")))
-    )
+    id_nm,
+    unlist(lapply(cohorts, function(co) paste0(co, "_", c("estimate", "p"))))
   )
   df_wide <- df_wide[, col_order]
 
-  bottom_header <- c("Predictor", rep(c("Beta", "P‐value"), times = nc))
+  bottom_header <- c(id_label, rep(c("Beta", "P-value"), times = nc))
   top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
 
   df_wide |>
@@ -118,6 +122,14 @@ get_marker_table <- function(corr_data) {
     ) |>
     kableExtra::add_header_above(top_header) |>
     kableExtra::kable_styling(latex_options = "striped", full_width = FALSE)
+}
+
+get_pet_table <- function(pet_corrs) {
+  make_beta_table(pet_corrs, id_col = outcome, id_label = "PET Measure")
+}
+
+get_marker_table <- function(corr_data) {
+  make_beta_table(corr_data, id_col = predictor, id_label = "Predictor")
 }
 
 get_marker_corrs <- function(cohort, outcome) {
@@ -250,13 +262,10 @@ get_pet_corrs <- function(cohort) {
     "raw_suvr",
     "centiloid"
   )
-  as.data.frame(
-    t(sapply(
-      measures,
-      function(outcome) {
-        get_adjusted_corr(cohort, outcome, "mean_ptau217")
-      }
-    ))
-  ) |>
-    rownames_to_column("Measure")
+  bind_rows(lapply(
+    measures,
+    function(outcome) {
+      get_adjusted_corr(cohort, outcome, predictor = "mean_ptau217")
+    }
+  ))
 }

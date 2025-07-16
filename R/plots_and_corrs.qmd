@@ -118,10 +118,13 @@ tar_read(csf_out)
 ## Biomarkers and PET measures correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-pet <- tar_read(pet_ptau)
-pet[[1]]
-pet[[2]]
-pet[[3]]
+tar_read(pet_corr_table)
+tar_load(pet_plots)
+```
+```{r}
+#| results: asis
+#| echo: false
+cat(make_nested_tabs(pet_plots))
 ```
 :::
 

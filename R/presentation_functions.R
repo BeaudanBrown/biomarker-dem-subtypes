@@ -211,6 +211,24 @@ print_pet_table <- function(pet_output, caption) {
   )
 }
 
+get_pet_plots <- function(cohort) {
+  measures <- c(
+    "zscore",
+    "raw_suvr",
+    "centiloid"
+  )
+  bind_rows(lapply(
+    measures,
+    function(measure) {
+      get_corr_plot(
+        cohort = cohort,
+        outcome = measure,
+        predictor = "pTau-217"
+      )
+    }
+  ))
+}
+
 get_marker_plots <- function(cohort, outcome) {
   markers <- c(
     "CD14",
