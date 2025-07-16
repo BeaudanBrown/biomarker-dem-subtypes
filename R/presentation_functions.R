@@ -192,43 +192,6 @@ subtypes_vs_control <- function(roc_results) {
   )
 }
 
-## NOT USED CURRENTLY
-
-print_pet_table <- function(pet_output, caption) {
-  df <- as.data.frame(t(pet_output$coefs))
-  rownames(df) <- NULL
-  df <- df |>
-    rename(
-      "Z-score" = "zscore.mean_ptau217",
-      "Raw SUVR" = "raw_suvr.mean_ptau217",
-      "Centiloid" = "centiloid.mean_ptau217"
-    )
-
-  knitr::kable(
-    df,
-    digits = 3,
-    caption = paste0(caption, " (n = ", pet_output$n, ")")
-  )
-}
-
-get_pet_plots <- function(cohort) {
-  measures <- c(
-    "zscore",
-    "raw_suvr",
-    "centiloid"
-  )
-  bind_rows(lapply(
-    measures,
-    function(measure) {
-      get_corr_plot(
-        cohort = cohort,
-        outcome = measure,
-        predictor = "pTau-217"
-      )
-    }
-  ))
-}
-
 get_marker_plots <- function(cohort, outcome) {
   markers <- c(
     "CD14",
@@ -245,7 +208,7 @@ get_marker_plots <- function(cohort, outcome) {
   bind_rows(lapply(
     markers,
     function(marker) {
-      get_corr_plot(
+      get_marker_plot(
         cohort = cohort,
         outcome = outcome,
         predictor = marker
@@ -254,7 +217,7 @@ get_marker_plots <- function(cohort, outcome) {
   ))
 }
 
-get_corr_plot <- function(cohort, predictor, outcome) {
+get_marker_plot <- function(cohort, predictor, outcome) {
   cohort_name <- names(cohort)
   df <- cohort[[cohort_name]]
   tibble(
@@ -287,133 +250,6 @@ get_corr_plot <- function(cohort, predictor, outcome) {
         ggtitle(paste0(predictor, " vs ", outcome))
     )
   )
-}
-
-## CSF AB vs plasma markers plot
-
-csf_vs_markers <- function(df) {
-  cohort_info <- list(
-    "All" = NULL,
-    "Any Dem" = c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
-    "Alzheimer's" = c("Alzheimer's"),
-    "Frontotermporal" = c("Frontotermporal"),
-    "Lewy bodies" = c("Lewy bodies")
-  )
-
-  # Loop over each cohort, run csf_corr(), extract the AB ratio + n,
-  # and record the cohort name.
-  results <- lapply(names(cohort_info), function(cohort) {
-    diagnosis <- cohort_info[[cohort]]
-    csf_out <- csf_corr(df, diagnosis = diagnosis)
-    tmp_df <- as.data.frame(t(csf_out$coefs))
-    ab_ratio <- round(tmp_df$CSF_AB_Ratio.mean_ptau217, 3)
-    list(Cohort = cohort, "AB42/AB40 Ratio" = ab_ratio, n = csf_out$n)
-  })
-  final_df <- do.call(rbind, results)
-  knitr::kable(
-    final_df,
-    caption = "pTau-217 and CSF AB-Ratio (age/sex adjusted)"
-  )
-
-  df |>
-    mutate(CSF_AB_Ratio = LUMIPULSE_CSF_AB42 / LUMIPULSE_CSF_AB40) |>
-    filter(!is.na(mean_ptau217) & !is.na(CSF_AB_Ratio)) |>
-    filter(Site == "Washington") |>
-    ggplot(aes(
-      x = mean_ptau217,
-      y = CSF_AB_Ratio,
-      color = Diagnosis_combined
-    )) +
-    geom_point() +
-    geom_smooth(method = "lm", se = FALSE) +
-    labs(
-      color = "Diagnosis",
-      title = "CSF AB-Ratio vs pTau-217 (not age/sex adjusted)",
-      x = "Mean pTau-217",
-      y = "CSF AB-Ratio"
-    )
-}
-
-
-## PET vs PTAU217
-
-pet_vs_ptau <- function(all_cohorts) {
-  whole_pet <- pet_corr(df)
-  Any_pet <- pet_corr(
-    df,
-    diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies")
-  )
-  AD_pet <- pet_corr(df, diagnosis = c("Alzheimer's"))
-  FTD_pet <- pet_corr(df, diagnosis = c("Frontotermporal"))
-  LBD_pet <- pet_corr(df, diagnosis = c("Lewy bodies"))
-
-  pet <- bind_cols(
-    as.data.frame(whole_pet$coefs),
-    as.data.frame(Any_pet$coefs),
-    as.data.frame(AD_pet$coefs),
-    as.data.frame(FTD_pet$coefs),
-    as.data.frame(LBD_pet$coefs)
-  ) |>
-    setNames(c(
-      paste0("All (n = ", whole_pet$n, ")"),
-      paste0("Any Dem (n = ", Any_pet$n, ")"),
-      paste0("AD (n = ", AD_pet$n, ")"),
-      paste0("LBD (n = ", FTD_pet$n, ")"),
-      paste0("FTD (n = ", LBD_pet$n, ")")
-    )) |>
-    rownames_to_column("Measure") |>
-    mutate(
-      Measure = case_when(
-        Measure == "zscore" ~ "Z-score",
-        Measure == "raw_suvr" ~ "Raw SUVR",
-        Measure == "centiloid" ~ "Centiloid",
-        TRUE ~ Measure
-      )
-    ) |>
-    relocate(Measure)
-
-  pet_table <-
-    knitr::kable(
-      pet,
-      digits = 3,
-      caption = "PET Measures and pTau-217 (age/sex adjusted)"
-    )
-
-  plot1 <- df |>
-    rename(
-      "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
-      "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
-    ) |>
-    filter(!is.na(mean_ptau217) & !is.na(raw_suvr)) |>
-    filter(Site == "Washington") |>
-    ggplot(aes(x = mean_ptau217, y = raw_suvr, color = Diagnosis_combined)) +
-    geom_point() +
-    geom_smooth(method = "lm", se = FALSE) +
-    labs(
-      color = "Diagnosis",
-      title = "Raw SUVR AB-Ratio vs pTau-217 (not age/sex adjusted)",
-      x = "Mean pTau-217",
-      y = "SUVR"
-    )
-
-  plot2 <- df |>
-    rename(
-      "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
-      "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
-    ) |>
-    filter(!is.na(mean_ptau217) & !is.na(centiloid)) |>
-    filter(Site == "Washington") |>
-    ggplot(aes(x = mean_ptau217, y = centiloid, color = Diagnosis_combined)) +
-    geom_point() +
-    geom_smooth(method = "lm", se = FALSE) +
-    labs(
-      color = "Diagnosis",
-      title = "Centiloid AB-Ratio vs pTau-217 (not age/sex adjusted)",
-      x = "Mean pTau-217",
-      y = "Centiloid"
-    )
-
-  list(pet_table, plot1, plot2)
 }
 
 ## VIMP overall

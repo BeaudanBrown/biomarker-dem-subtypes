@@ -2,20 +2,20 @@ list(
   tar_target(
     whole_cohort,
     {
-      df |> mutate(Diagnosis_combined = "Whole Cohort")
+      df_with_csf |> mutate(Diagnosis_combined = "Whole Cohort")
     }
   ),
   tar_target(
     all_subtypes_cohort,
-    df[
-      df$Diagnosis_combined %in%
+    df_with_csf[
+      df_with_csf$Diagnosis_combined %in%
         c("Alzheimer's", "Frontotermporal", "Lewy bodies"),
     ]
   ),
   tar_target(
     any_dementia_cohort,
     {
-      combined_df <- df |>
+      combined_df <- df_with_csf |>
         mutate(
           Diagnosis_combined = case_when(
             Diagnosis_combined == "Alzheimer's" ~ "Any Dem",
@@ -30,15 +30,15 @@ list(
   ),
   tar_target(
     ad_cohort,
-    df[df$Diagnosis_combined %in% c("Alzheimer's"), ]
+    df_with_csf[df_with_csf$Diagnosis_combined %in% c("Alzheimer's"), ]
   ),
   tar_target(
     ftd_cohort,
-    df[df$Diagnosis_combined %in% c("Frontotermporal"), ]
+    df_with_csf[df_with_csf$Diagnosis_combined %in% c("Frontotermporal"), ]
   ),
   tar_target(
     lbd_cohort,
-    df[df$Diagnosis_combined %in% c("Lewy bodies"), ]
+    df_with_csf[df_with_csf$Diagnosis_combined %in% c("Lewy bodies"), ]
   ),
   tar_target(
     all_cohorts,

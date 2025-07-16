@@ -124,12 +124,47 @@ make_beta_table <- function(
     kableExtra::kable_styling(latex_options = "striped", full_width = FALSE)
 }
 
-get_pet_table <- function(pet_corrs) {
-  make_beta_table(pet_corrs, id_col = outcome, id_label = "PET Measure")
-}
-
 get_marker_table <- function(corr_data) {
-  make_beta_table(corr_data, id_col = predictor, id_label = "Predictor")
+  corr_data <- corr_data |>
+    filter(cohort != "All Subtypes") |>
+    group_by(cohort) |>
+    mutate(
+      cohort = glue::glue("{cohort} (n={max(n)})")
+    ) |>
+    ungroup()
+
+  cohorts <- corr_data |>
+    dplyr::distinct(cohort) |>
+    dplyr::pull(cohort)
+  nc <- length(cohorts)
+
+  df_wide <- corr_data |>
+    tidyr::pivot_wider(
+      id_cols = predictor,
+      names_from = cohort,
+      values_from = c(estimate, p),
+      names_glue = "{cohort}_{.value}"
+    )
+
+  col_order <- c(
+    "predictor",
+    unlist(
+      lapply(cohorts, function(x) paste0(x, "_", c("estimate", "p")))
+    )
+  )
+  df_wide <- df_wide[, col_order]
+
+  bottom_header <- c("Predictor", rep(c("Beta", "P‐value"), times = nc))
+  top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
+
+  df_wide |>
+    kableExtra::kable(
+      format = "html",
+      booktabs = TRUE,
+      col.names = bottom_header
+    ) |>
+    kableExtra::add_header_above(top_header) |>
+    kableExtra::kable_styling(latex_options = "striped", full_width = FALSE)
 }
 
 get_marker_corrs <- function(cohort, outcome) {
@@ -268,4 +303,12 @@ get_pet_corrs <- function(cohort) {
       get_adjusted_corr(cohort, outcome, predictor = "mean_ptau217")
     }
   ))
+}
+
+get_csf_corrs <- function(cohort) {
+  get_adjusted_corr(
+    cohort,
+    outcome = "CSF_AB_Ratio",
+    predictor = "mean_ptau217"
+  )
 }

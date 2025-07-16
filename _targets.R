@@ -86,6 +86,7 @@ list(
   c(source("file_targets.R")$value),
   c(source("cohort_targets.R")$value),
   c(source("pet_targets.R")$value),
+  c(source("csf_targets.R")$value),
   c(source("cog_correlation_targets.R")$value),
   c(roc_targets),
   c(subset_targets),
@@ -96,12 +97,8 @@ list(
   # clean data
   tar_target(df_with_csf, clean_data(joined_with_csf)),
   # tar_target(subtypes_control, subtypes_vs_control(roc_results)),
-  # CSF AB vs plasma markers
-  tar_target(csf_out, csf_vs_markers(df)),
   # CSF marker and plasma marker partial rank order correlations
   tar_target(csf_rank_cors, csf_rank_corr(df_with_csf)),
-  # PET AB vs PTAU-217
-  # tar_target(pet_ptau, pet_vs_ptau(df)),
   # Variable importance overall
   # tar_target(vimp_full, vimp_overall(df)),
   # Variable importance for females
