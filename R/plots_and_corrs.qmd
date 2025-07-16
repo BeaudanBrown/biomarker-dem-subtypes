@@ -20,7 +20,7 @@ library(targets)
 library(patchwork)
 ```
 
-::: {.panel-tabset}
+:::: {.panel-tabset}
 ## ROC curves: each dementia subtypes vs others
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
@@ -57,23 +57,54 @@ tar_read(roc_results)$LBD_vs_FTD[["roc_plot"]]
 ## Biomarker MMSE correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-mmse <- tar_read(mmse_out)
-mmse[[1]]
-for (marker in mmse[[2]]) {
-  print(marker)
-}
+tar_read(mmse_corr_table)
+tar_load(mmse_plots)
+make_nested_tabs <- function(all_plots) {
+  tab_content <- "::: {.panel-tabset}\n"
 
+  for (cohort_name in unique(all_plots$cohort)) {
+    tab_content <- paste0(tab_content, glue::glue("
+  ### {cohort_name}
+
+  \`\`\`{{r}}
+  #| echo: false
+  cohort_plots <- all_plots |> dplyr::filter(cohort == '{cohort_name}')
+  for (i in seq_len(nrow(cohort_plots))) {{
+    print(cohort_plots$plot[[i]])
+  }}
+  \`\`\`
+
+  "))
+  }
+
+  tab_content <- paste0(tab_content, ":::")
+
+  knitr::knit_child(
+    text = tab_content,
+    envir = environment(),
+    quiet = TRUE
+  )
+}
+```
+
+```{r}
+#| results: asis
+#| echo: false
+cat(make_nested_tabs(mmse_plots))
 ```
 :::
 
 ## Biomarker CDR correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
-cdr <- tar_read(cdr_out)
-cdr[[1]]
-for (marker in cdr[[2]]) {
-  print(marker)
-}
+tar_read(cdr_corr_table)
+tar_load(cdr_plots)
+```
+
+```{r}
+#| results: asis
+#| echo: false
+cat(make_nested_tabs(cdr_plots))
 ```
 :::
 
@@ -175,4 +206,4 @@ plots_cdr$ad
 plots_cdr$ftd
 plots_cdr$lbd
 ```
-:::
+::::

@@ -79,6 +79,7 @@
               tarchetypes
               dbarts
               tmle
+              kableExtra
             ]);
         };
       }

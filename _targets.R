@@ -17,7 +17,7 @@ plan(multicore)
 unlink("./logs/*", recursive = FALSE)
 crew_controller_global <- crew_controller_local(
   options_local = crew_options_local(log_directory = "./logs"),
-  workers = 10
+  workers = 11
 )
 tar_option_set(error = "null")
 
@@ -98,72 +98,10 @@ subset_comparisons <- bind_rows(
 ## pipeline
 list(
   # declare input data
-  tar_target(
-    pheno_file,
-    file.path(data_dir, Sys.getenv("PHENO_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    gilipin_file,
-    file.path(data_dir, Sys.getenv("GILIPIN_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    all_cases_file,
-    file.path(data_dir, Sys.getenv("ALL_CASES_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    addf_file,
-    file.path(data_dir, Sys.getenv("ADDF_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    texas_file,
-    file.path(data_dir, Sys.getenv("TEXAL_PRELIM_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    texas_file_update,
-    file.path(data_dir, Sys.getenv("TEXAL_UPDATE_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    addf_cd14_file,
-    file.path(data_dir, Sys.getenv("ADDF_CD14_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    addf_csf_file,
-    file.path(data_dir, Sys.getenv("ADDF_CSF_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    nacc_file,
-    file.path(data_dir, Sys.getenv("NACC_FILE")),
-    format = "file"
-  ),
-  tar_target(
-    wash_cogs_file,
-    file.path(data_dir, Sys.getenv("NEW_WASH_COGS")),
-    format = "file"
-  ),
-  # merge input data
-  tar_target(
-    joined,
-    merge_datafiles(
-      pheno_file,
-      gilipin_file,
-      all_cases_file,
-      addf_file,
-      texas_file,
-      texas_file_update,
-      addf_cd14_file,
-      wash_cogs_file,
-      addf_csf_file,
-      nacc_file
-    )
-  ),
+  c(source("file_targets.R")$value),
+  c(source("cohort_targets.R")$value),
+  c(source("pet_targets.R")$value),
+  c(source("cog_correlation_targets.R")$value),
   # clean data
   tar_target(df, clean_data(joined)),
   # add extra csf (for correlations)
@@ -255,16 +193,12 @@ list(
   # ),
   # get sex specific ROC curves
   # tar_target(subtypes_control, subtypes_vs_control(roc_results)),
-  # MMSE correlation table
-  tar_target(mmse_out, mmse_table(df)),
-  # CDR correlation table
-  tar_target(cdr_out, cdr_vs_markers(df_with_csf)),
   # CSF AB vs plasma markers
   tar_target(csf_out, csf_vs_markers(df)),
   # CSF marker and plasma marker partial rank order correlations
   tar_target(csf_rank_cors, csf_rank_corr(df_with_csf)),
   # PET AB vs PTAU-217
-  tar_target(pet_ptau, pet_vs_ptau(df)),
+  # tar_target(pet_ptau, pet_vs_ptau(df)),
   # Variable importance overall
   # tar_target(vimp_full, vimp_overall(df)),
   # Variable importance for females

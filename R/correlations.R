@@ -4,7 +4,7 @@ standardise <- function(x) {
   (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
 }
 
-prepare <- function(df) {
+standardise_df <- function(df) {
   df |>
     mutate(
       mean_ab42_ab40_ratio = standardise(ifelse(
@@ -27,53 +27,100 @@ prepare <- function(df) {
       CSF_VILIP1 = standardise(CSF_VILIP1),
       CSF_Ng = standardise(CSF_Ng),
       CSF_AB_Ratio = standardise(LUMIPULSE_CSF_AB42 / LUMIPULSE_CSF_AB40),
-      CSF_SNAP25 = standardise(CSF_SNAP25)
-    ) |>
-    rename(
-      "age" = "age_combined",
-      "raw_suvr" = "av45/PIB_fsuvr_rsf_tot_cortmean",
-      "centiloid" = "Centiloid_AV45_fSUVR_TOT_CORTMEA",
+      CSF_SNAP25 = standardise(CSF_SNAP25),
+      zscore = standardise(zscore),
+      raw_suvr = standardise(raw_suvr),
+      centiloid = standardise(centiloid)
     )
 }
 
-
-inflam_cdr <- function(df, diagnosis = NULL) {
-  if (!is.null(diagnosis)) {
-    df <- df[df$Diagnosis_combined %in% diagnosis, ]
-  }
-  washington <- prepare(df)
-
-  get_cdr_corr <- function(marker) {
-    cdr_df <- washington |>
-      filter(!is.na(get(marker)) & !is.na(cdr))
-    cdr_coef <- cdr_df |>
-      lm(
-        as.formula(paste0(
-          "cdr ~ ",
-          paste(marker, "age", "female", sep = " + ")
-        )),
-        data = _
-      ) |>
-      coef()
-
-    return(sprintf("%.3f (%d)", cdr_coef[[marker]], nrow(cdr_df)))
+get_adjusted_corr <- function(cohort, outcome, predictor) {
+  format_estimate <- function(x) sprintf("%.3f", round(x, 3))
+  format_pval <- function(p) {
+    if (is.na(p)) {
+      return(NA)
+    }
+    if (p < 0.05) {
+      base <- "*"
+    } else {
+      base <- ""
+    }
+    if (p < 0.001) {
+      paste0(base, formatC(p, format = "e", digits = 2))
+    } else {
+      paste0(base, sprintf("%.3f", round(p, 3)))
+    }
   }
 
-  get_mmse_corr <- function(marker) {
-    mmse_df <- washington |>
-      filter(!is.na(get(marker)) & !is.na(MMSE))
-    mmse_coef <- mmse_df |>
-      lm(
-        as.formula(paste0(
-          "MMSE ~ ",
-          paste(marker, "age", "female", sep = " + ")
-        )),
-        data = _
-      ) |>
-      coef()
+  cohort_name <- names(cohort)
+  df <- cohort[[cohort_name]]
+  filtered_df <- df |>
+    filter(!is.na(get(outcome)) & !is.na(get(predictor)))
+  model <- lm(
+    as.formula(paste0(
+      outcome,
+      " ~ ",
+      paste(predictor, "age", "female", sep = " + ")
+    )),
+    data = filtered_df
+  )
+  summary_model <- summary(model)
+  coef_predictor <- coef(summary_model)[predictor, "Estimate"]
+  pval_predictor <- coef(summary_model)[predictor, "Pr(>|t|)"]
 
-    return(sprintf("%.3f (%d)", mmse_coef[[marker]], nrow(mmse_df)))
-  }
+  tibble(
+    cohort = cohort_name,
+    predictor = predictor,
+    estimate = format_estimate(coef_predictor),
+    p = format_pval(pval_predictor),
+    n = nrow(filtered_df)
+  )
+}
+
+get_marker_table <- function(corr_data) {
+  corr_data <- corr_data |>
+    filter(cohort != "All Subtypes") |>
+    group_by(cohort) |>
+    mutate(
+      cohort = glue::glue("{cohort} (n={max(n)})")
+    ) |>
+    ungroup()
+
+  cohorts <- corr_data |>
+    dplyr::distinct(cohort) |>
+    dplyr::pull(cohort)
+  nc <- length(cohorts)
+
+  df_wide <- corr_data |>
+    tidyr::pivot_wider(
+      id_cols = predictor,
+      names_from = cohort,
+      values_from = c(estimate, p),
+      names_glue = "{cohort}_{.value}"
+    )
+
+  col_order <- c(
+    "predictor",
+    unlist(
+      lapply(cohorts, function(x) paste0(x, "_", c("estimate", "p")))
+    )
+  )
+  df_wide <- df_wide[, col_order]
+
+  bottom_header <- c("Predictor", rep(c("Beta", "P‐value"), times = nc))
+  top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
+
+  df_wide |>
+    kableExtra::kable(
+      format = "html",
+      booktabs = TRUE,
+      col.names = bottom_header
+    ) |>
+    kableExtra::add_header_above(top_header) |>
+    kableExtra::kable_styling(latex_options = "striped", full_width = FALSE)
+}
+
+get_marker_corrs <- function(cohort, outcome) {
   markers <- c(
     "mean_elisa",
     "mean_nfl",
@@ -86,9 +133,15 @@ inflam_cdr <- function(df, diagnosis = NULL) {
     "mean_ptau181",
     "mean_ptau217"
   )
-  return(list(
-    mmse = sapply(markers, get_mmse_corr),
-    cdr = sapply(markers, get_cdr_corr)
+  bind_rows(lapply(
+    markers,
+    function(marker) {
+      get_adjusted_corr(
+        cohort = cohort,
+        outcome = outcome,
+        predictor = marker
+      )
+    }
   ))
 }
 
@@ -96,7 +149,7 @@ csf_corr <- function(df, diagnosis = NULL) {
   if (!is.null(diagnosis)) {
     df <- df[df$Diagnosis_combined %in% diagnosis, ]
   }
-  washington <- prepare(df) |>
+  washington <- standardise_df(df) |>
     filter(!is.na(mean_ptau217) & !is.na(CSF_AB_Ratio))
 
   get_ptau_csf_corr <- function(csf_marker) {
@@ -191,60 +244,19 @@ csf_rank_corr <- function(df, diagnosis = NULL) {
   return(out)
 }
 
-pet_corr <- function(df, diagnosis = NULL) {
-  if (!is.null(diagnosis)) {
-    df <- df[df$Diagnosis_combined %in% diagnosis, ]
-  }
-  pet_data <- prepare(df) |>
-    select(
-      age,
-      female,
-      raw_suvr,
-      centiloid,
-      zscore,
-      mean_ptau217
-    ) |>
-    filter(!is.na(mean_ptau217) & !is.na(raw_suvr)) |>
-    mutate(
-      zscore = standardise(zscore),
-      raw_suvr = standardise(raw_suvr),
-      centiloid = standardise(centiloid),
-      mean_ptau217 = standardise(mean_ptau217)
-    )
-  n <- nrow(pet_data)
-
-  coefs <- sapply(
-    c(
-      "zscore",
-      "raw_suvr",
-      "centiloid"
-    ),
-    function(outcome) {
-      coefs <- lm(
-        as.formula(paste0(
-          outcome,
-          " ~ ",
-          paste(
-            "mean_ptau217",
-            "age",
-            "female",
-            sep = " + "
-          )
-        )),
-        data = pet_data
-      ) |>
-        coef()
-      return(coefs[["mean_ptau217"]])
-    }
+get_pet_corrs <- function(cohort) {
+  measures <- c(
+    "zscore",
+    "raw_suvr",
+    "centiloid"
   )
-  return(list(n = n, coefs = coefs))
+  as.data.frame(
+    t(sapply(
+      measures,
+      function(outcome) {
+        get_adjusted_corr(cohort, outcome, "mean_ptau217")
+      }
+    ))
+  ) |>
+    rownames_to_column("Measure")
 }
-
-# 1. correlate each inflammatory marker (CD14, YKL, and GFAP) with CDR score and MMSE in the Wash U data only
-# 2. correlate pTau217 with CSF biomarkers (which CSF biomarkers, AB ratio) in Wash U
-# 3. Correlate pTau217 with AB PET measures
-#   (which are the best - av45/PIB_fsuvr_rsf_tot_cortmean;
-#    Centiloid_AV45_fSUVR_TOT_CORTMEA;
-#    zscore;
-#    Amyloid_Status Source)
-# 4. Using primary analysis (SuperLearner) compare DLB and FTD and each diagnosis to controls

@@ -1,24 +1,10 @@
 ## Presentation functions
 
-markers <- c(
-  "CD14",
-  "NfL",
-  "YKL-40",
-  "GFAP",
-  "AB42/AB40 Ratio",
-  "AB40",
-  "AB42",
-  "TDP-43",
-  "pTau-181",
-  "pTau-217"
-)
-
 dem_names <- c(
   "Alzheimer's",
   "Frontotermporal",
   "Lewy bodies"
 )
-
 
 ## Data preparation for ROC analysis
 
@@ -236,7 +222,7 @@ rocs_by_sex <- function(df) {
     col.names = c("Diagnosis", "Men N (%)", "Women N (%)", "Total")
   )
 
-  return(list(gender_diag_table, ad_plot, lbd_plot, ftd_plot))
+  list(gender_diag_table, ad_plot, lbd_plot, ftd_plot)
 }
 
 ## Dementia subtypes vs control
@@ -278,155 +264,65 @@ print_pet_table <- function(pet_output, caption) {
   )
 }
 
-## MMSE table
-
-mmse_table <- function(df) {
-  whole_inflam <- inflam_cdr(df)
-  Any_inflam <- inflam_cdr(
-    df,
-    diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies")
+get_marker_plots <- function(cohort, outcome) {
+  markers <- c(
+    "CD14",
+    "NfL",
+    "YKL-40",
+    "GFAP",
+    "AB42/AB40 Ratio",
+    "AB40",
+    "AB42",
+    "TDP-43",
+    "pTau-181",
+    "pTau-217"
   )
-  AD_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's"))
-  FTD_inflam <- inflam_cdr(df, diagnosis = c("Frontotermporal"))
-  LBD_inflam <- inflam_cdr(df, diagnosis = c("Lewy bodies"))
-
-  mmse_list <- list(
-    "All (n)" = as.data.frame(whole_inflam$mmse),
-    "Any Dem (n)" = as.data.frame(Any_inflam$mmse),
-    "AD (n)" = as.data.frame(AD_inflam$mmse),
-    "LBD (n)" = as.data.frame(LBD_inflam$mmse),
-    "FTD (n)" = as.data.frame(FTD_inflam$mmse)
-  )
-
-  mmse <- bind_cols(mmse_list) |>
-    setNames(names(mmse_list)) |>
-    rownames_to_column("Marker") |>
-    relocate(Marker) |>
-    mutate(
-      Marker = case_when(
-        Marker == "mean_elisa" ~ "CD14",
-        Marker == "mean_nfl" ~ "NfL",
-        Marker == "mean_ykl" ~ "YKL-40",
-        Marker == "mean_gfap" ~ "GFAP",
-        Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-        Marker == "mean_ab40" ~ "AB40",
-        Marker == "mean_ab42" ~ "AB42",
-        Marker == "mean_tdp" ~ "TDP-43",
-        Marker == "mean_ptau181" ~ "pTau-181",
-        Marker == "mean_ptau217" ~ "pTau-217",
-        TRUE ~ Marker
+  bind_rows(lapply(
+    markers,
+    function(marker) {
+      get_corr_plot(
+        cohort = cohort,
+        outcome = outcome,
+        predictor = marker
       )
-    )
-  table <-
-    knitr::kable(
-      mmse,
-      digits = 3,
-      caption = "Inflamatory Markers and MMSE (age/sex adjusted)"
-    )
+    }
+  ))
+}
 
-  plots <- list()
-
-  for (marker in markers) {
-    plots[[marker]] <-
+get_corr_plot <- function(cohort, predictor, outcome) {
+  cohort_name <- names(cohort)
+  df <- cohort[[cohort_name]]
+  tibble(
+    cohort = cohort_name,
+    predictor = predictor,
+    plot = list(
       df |>
-      rename(
-        "CD14" = "mean_elisa",
-        "NfL" = "mean_nfl",
-        "YKL-40" = "mean_ykl",
-        "GFAP" = "mean_gfap",
-        "AB42/AB40 Ratio" = "mean_ab42_ab40_ratio",
-        "AB40" = "mean_ab40",
-        "AB42" = "mean_ab42",
-        "TDP-43" = "mean_tdp",
-        "pTau-181" = "mean_ptau181",
-        "pTau-217" = "mean_ptau217"
-      ) |>
-      filter(!is.na(.data[[marker]]) & !is.na(MMSE)) |>
-      ggplot(aes(x = .data[[marker]], y = MMSE, color = Diagnosis_combined)) +
-      geom_point() +
-      geom_smooth(method = "lm", se = FALSE) +
-      labs(color = "Diagnosis") +
-      xlab(marker) +
-      ggtitle(paste0(marker, " vs MMSE (not adjusted)"))
-  }
-
-  return(list(table, plots))
-}
-
-## CDR vs markers
-
-cdr_vs_markers <- function(df) {
-  whole_inflam <- inflam_cdr(df)
-  Any_inflam <- inflam_cdr(
-    df,
-    diagnosis = c("Alzheimer's", "Frontotermporal", "Lewy bodies")
-  )
-  AD_inflam <- inflam_cdr(df, diagnosis = c("Alzheimer's"))
-  FTD_inflam <- inflam_cdr(df, diagnosis = c("Frontotermporal"))
-  LBD_inflam <- inflam_cdr(df, diagnosis = c("Lewy bodies"))
-
-  cdr_list <- list(
-    "All" = as.data.frame(whole_inflam$cdr),
-    "Any Dem" = as.data.frame(Any_inflam$cdr),
-    "AD" = as.data.frame(AD_inflam$cdr),
-    "LBD" = as.data.frame(LBD_inflam$cdr),
-    "FTD" = as.data.frame(FTD_inflam$cdr)
-  )
-
-  cdr <- bind_cols(cdr_list) |>
-    setNames(names(cdr_list)) |>
-    rownames_to_column("Marker") |>
-    relocate(Marker) |>
-    mutate(
-      Marker = case_when(
-        Marker == "mean_elisa" ~ "CD14",
-        Marker == "mean_nfl" ~ "NfL",
-        Marker == "mean_ykl" ~ "YKL-40",
-        Marker == "mean_gfap" ~ "GFAP",
-        Marker == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-        Marker == "mean_ab40" ~ "AB40",
-        Marker == "mean_ab42" ~ "AB42",
-        Marker == "mean_tdp" ~ "TDP-43",
-        Marker == "mean_ptau181" ~ "pTau-181",
-        Marker == "mean_ptau217" ~ "pTau-217",
-        TRUE ~ Marker
-      )
+        rename(
+          "CD14" = "mean_elisa",
+          "NfL" = "mean_nfl",
+          "YKL-40" = "mean_ykl",
+          "GFAP" = "mean_gfap",
+          "AB42/AB40 Ratio" = "mean_ab42_ab40_ratio",
+          "AB40" = "mean_ab40",
+          "AB42" = "mean_ab42",
+          "TDP-43" = "mean_tdp",
+          "pTau-181" = "mean_ptau181",
+          "pTau-217" = "mean_ptau217"
+        ) |>
+        filter(!is.na(.data[[predictor]]) & !is.na(.data[[outcome]])) |>
+        ggplot(aes(
+          x = .data[[predictor]],
+          y = .data[[outcome]],
+          color = Diagnosis_combined
+        )) +
+        geom_point() +
+        geom_smooth(method = "lm", se = FALSE) +
+        labs(color = "Diagnosis") +
+        xlab(predictor) +
+        ggtitle(paste0(predictor, " vs ", outcome))
     )
-  cdr_table <-
-    knitr::kable(
-      cdr,
-      digits = 3,
-      caption = "Inflamatory Markers and CDR (age/sex adjusted)"
-    )
-
-  plots <- list()
-
-  for (marker in markers) {
-    plots[[marker]] <- df |>
-      rename(
-        "CD14" = "mean_elisa",
-        "NfL" = "mean_nfl",
-        "YKL-40" = "mean_ykl",
-        "GFAP" = "mean_gfap",
-        "AB42/AB40 Ratio" = "mean_ab42_ab40_ratio",
-        "AB40" = "mean_ab40",
-        "AB42" = "mean_ab42",
-        "TDP-43" = "mean_tdp",
-        "pTau-181" = "mean_ptau181",
-        "pTau-217" = "mean_ptau217"
-      ) |>
-      filter(!is.na(.data[[marker]]) & !is.na(cdr)) |>
-      ggplot(aes(x = .data[[marker]], y = cdr, color = Diagnosis_combined)) +
-      geom_point() +
-      geom_smooth(method = "lm", se = FALSE) +
-      labs(color = "Diagnosis") +
-      xlab(marker) +
-      ggtitle(paste0(marker, " vs CDR (not adjusted)"))
-  }
-
-  list(cdr_table = cdr_table, plots = plots)
+  )
 }
-
 
 ## CSF AB vs plasma markers plot
 
@@ -476,7 +372,7 @@ csf_vs_markers <- function(df) {
 
 ## PET vs PTAU217
 
-pet_vs_ptau <- function(df) {
+pet_vs_ptau <- function(all_cohorts) {
   whole_pet <- pet_corr(df)
   Any_pet <- pet_corr(
     df,
@@ -552,7 +448,7 @@ pet_vs_ptau <- function(df) {
       y = "Centiloid"
     )
 
-  return(list(pet_table, plot1, plot2))
+  list(pet_table, plot1, plot2)
 }
 
 ## VIMP overall
@@ -638,7 +534,7 @@ vimp_overall <- function(df) {
     )
   }
 
-  return(tables)
+  tables
 }
 
 ## VIMP by sex
@@ -733,5 +629,5 @@ vimp_by_sex <- function(df, stratification) {
       )
   }
 
-  return(tables)
+  tables
 }
