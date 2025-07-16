@@ -71,7 +71,8 @@ plot_auc_steps <- function(data, outcome, extra_title = "", use_cdr = TRUE) {
   return(p)
 }
 
-build_path <- function(full_path, ref_auc) {
+build_path <- function(path_data) {
+  ref_auc <- path_data$reference_auc
   all_vars <- c(
     "mean_elisa",
     "mean_nfl",
@@ -99,24 +100,24 @@ build_path <- function(full_path, ref_auc) {
   # Function to get remaining variables at each step
   get_remaining_vars <- function(step, removed_vars) {
     if (step == 0) {
-      return(all_vars)
+      all_vars
     } else if (step == length(all_vars)) {
-      return(NA)
+      NA
     } else {
-      return(setdiff(all_vars, removed_vars[1:step]))
+      setdiff(all_vars, removed_vars[1:step])
     }
   }
 
-  best_path <- map(full_path, function(options) {
-    return(options[which.max(options$auc), ])
+  best_path <- map(path_data$path, function(options) {
+    options[which.max(options$auc), ]
   })
 
   # Extract removed variables in order
   removed_vars_in_order <- map_chr(best_path, ~ .x$removed_var)
 
-  result1 <- best_path %>%
+  best_path %>%
     map2_dfr(seq_along(.), function(tibble, index) {
-      tibble %>% mutate(step = index)
+      tibble |> mutate(step = index)
     }) |>
     add_row(
       removed_var = "Full",
@@ -138,10 +139,8 @@ build_path <- function(full_path, ref_auc) {
       model_vars = map(step, function(s) {
         remaining_raw <- get_remaining_vars(s, removed_vars_in_order)
         remaining_display <- var_mapping[remaining_raw]
-        return(remaining_display)
+        remaining_display
       })
     ) |>
     select(-raw_removed_var) # Remove the temporary column
-
-  return(result1)
 }

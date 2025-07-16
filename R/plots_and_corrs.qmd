@@ -165,7 +165,7 @@ vimp_m[[3]]
 
 ```{r}
 #| include: false
-plots <- tar_read(subset_plots)
+plots <- tar_read(subset_plots_full)
 ```
 
 ## Biomarker subset path

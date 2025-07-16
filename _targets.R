@@ -77,23 +77,8 @@ tar_source()
 
 data.table::setDTthreads(1)
 
-subset_comparisons <- bind_rows(
-  list(
-    comparison = "AD_vs_Others",
-    target_diagnosis = "Alzheimer's",
-    comparators = list(c("Lewy bodies", "Frontotermporal"))
-  ),
-  list(
-    comparison = "FTD_vs_Others",
-    target_diagnosis = "Frontotermporal",
-    comparators = list(c("Lewy bodies", "Alzheimer's"))
-  ),
-  list(
-    comparison = "LBD_vs_Others",
-    target_diagnosis = "Lewy bodies",
-    comparators = list(c("Alzheimer's", "Frontotermporal"))
-  )
-)
+source("roc_targets.R")
+source("subset_targets.R")
 
 ## pipeline
 list(
@@ -102,96 +87,14 @@ list(
   c(source("cohort_targets.R")$value),
   c(source("pet_targets.R")$value),
   c(source("cog_correlation_targets.R")$value),
+  c(roc_targets),
+  c(subset_targets),
   # clean data
   tar_target(df, clean_data(joined)),
   # add extra csf (for correlations)
   tar_target(joined_with_csf, add_extra_csf(joined, addf_csf_file)),
   # clean data
   tar_target(df_with_csf, clean_data(joined_with_csf)),
-  # prepare ROC data
-  tar_target(roc_data_prepared, prepare_roc_data(df_with_csf)),
-  tar_target(
-    roc_data_prepared_fasting,
-    prepare_roc_data(df, with_fasting = "yes")
-  ),
-  # parallel ROC computations using tar_map
-  tar_map(
-    values = tibble(
-      comparison = c(
-        "AD_vs_Control",
-        "FTD_vs_Control",
-        "LBD_vs_Control",
-        "LBD_vs_FTD",
-        "AD_vs_Others",
-        "LBD_vs_Others",
-        "FTD_vs_Others"
-      )
-    ),
-    tar_target(roc_result, run_single_roc(roc_data_prepared, comparison))
-  ),
-  # parallel ROC computations with fasting
-  tar_map(
-    values = tibble(
-      comparison = c(
-        "AD_vs_Control",
-        "FTD_vs_Control",
-        "LBD_vs_Control",
-        "LBD_vs_FTD",
-        "AD_vs_Others",
-        "LBD_vs_Others",
-        "FTD_vs_Others"
-      )
-    ),
-    tar_target(
-      roc_result_fasting,
-      run_single_roc(roc_data_prepared_fasting, comparison)
-    )
-  ),
-  # combine parallel results
-  tar_target(
-    roc_results,
-    list(
-      AD_vs_Control = roc_result_AD_vs_Control,
-      FTD_vs_Control = roc_result_FTD_vs_Control,
-      LBD_vs_Control = roc_result_LBD_vs_Control,
-      LBD_vs_FTD = roc_result_LBD_vs_FTD,
-      AD_vs_Others = roc_result_AD_vs_Others,
-      LBD_vs_Others = roc_result_LBD_vs_Others,
-      FTD_vs_Others = roc_result_FTD_vs_Others
-    )
-  ),
-  tar_target(
-    roc_results_fasting,
-    list(
-      AD_vs_Control = roc_result_fasting_AD_vs_Control,
-      FTD_vs_Control = roc_result_fasting_FTD_vs_Control,
-      LBD_vs_Control = roc_result_fasting_LBD_vs_Control,
-      LBD_vs_FTD = roc_result_fasting_LBD_vs_FTD,
-      AD_vs_Others = roc_result_fasting_AD_vs_Others,
-      LBD_vs_Others = roc_result_fasting_LBD_vs_Others,
-      FTD_vs_Others = roc_result_fasting_FTD_vs_Others
-    )
-  ),
-  # get combined ROC curve
-  tar_target(combined_roc, get_combined_roc(roc_results)),
-  # get combined ROC curve
-  tar_target(combined_roc_fasting, get_combined_roc(roc_results_fasting)),
-  # # get sex specific ROC curves
-  # tar_map(
-  #   values = tibble(
-  #     comparison = c(
-  #       "AD_vs_Control",
-  #       "FTD_vs_Control",
-  #       "LBD_vs_Control",
-  #       "LBD_vs_FTD",
-  #       "AD_vs_Others",
-  #       "LBD_vs_Others",
-  #       "FTD_vs_Others"
-  #     )
-  #   ),
-  #   tar_target(roc_result_men, run_single_roc(roc_data, comparison))
-  # ),
-  # get sex specific ROC curves
   # tar_target(subtypes_control, subtypes_vs_control(roc_results)),
   # CSF AB vs plasma markers
   tar_target(csf_out, csf_vs_markers(df)),
@@ -205,106 +108,5 @@ list(
   # tar_target(vimp_females, vimp_by_sex(df, "female")),
   # Variable importance for males
   # tar_target(vimp_males, vimp_by_sex(df, "male")),
-  # Parallel subset analysis for full cohort
-  tar_map(
-    values = subset_comparisons,
-    names = comparison,
-    tar_target(
-      subset_result,
-      run_single_subset(df, target_diagnosis, comparators)
-    )
-  ),
-  # Combine parallel results for backward compatibility
-  tar_target(
-    subset_data,
-    list(
-      ad = subset_result_AD_vs_Others,
-      ftd = subset_result_FTD_vs_Others,
-      lbd = subset_result_LBD_vs_Others
-    )
-  ),
-  tar_target(subset_plots, all_subset_plots(subset_data)),
-  # Parallel subset analysis for men
-  tar_map(
-    values = subset_comparisons,
-    names = comparison,
-    tar_target(
-      subset_result_men,
-      run_single_subset(
-        df,
-        target_diagnosis,
-        comparators,
-        sex_strat = "male"
-      )
-    )
-  ),
-
-  # Combine parallel results for men
-  tar_target(
-    subset_data_men,
-    list(
-      ad = subset_result_men_AD_vs_Others,
-      ftd = subset_result_men_FTD_vs_Others,
-      lbd = subset_result_men_LBD_vs_Others
-    )
-  ),
-  tar_target(
-    subset_plots_men,
-    all_subset_plots(subset_data_men, extra_title = " - Males")
-  ),
-
-  # Parallel subset analysis for women
-  tar_map(
-    values = subset_comparisons,
-    names = comparison,
-    tar_target(
-      subset_result_women,
-      run_single_subset(
-        df,
-        target_diagnosis,
-        comparators,
-        sex_strat = "female"
-      )
-    )
-  ),
-
-  # Combine parallel results for women
-  tar_target(
-    subset_data_women,
-    list(
-      ad = subset_result_women_AD_vs_Others,
-      ftd = subset_result_women_FTD_vs_Others,
-      lbd = subset_result_women_LBD_vs_Others
-    )
-  ),
-  tar_target(
-    subset_plots_women,
-    all_subset_plots(subset_data_women, extra_title = " - Females")
-  ),
-
-  # Parallel subset analysis for CDR cohort
-  tar_map(
-    values = subset_comparisons,
-    names = comparison,
-    tar_target(
-      subset_result_cdr,
-      run_single_subset(df, target_diagnosis, comparators, use_cdr = TRUE)
-    )
-  ),
-
-  # Combine parallel results for CDR cohort
-  tar_target(
-    subset_data_cdr,
-    list(
-      ad = subset_result_cdr_AD_vs_Others,
-      ftd = subset_result_cdr_FTD_vs_Others,
-      lbd = subset_result_cdr_LBD_vs_Others
-    )
-  ),
-  tar_target(
-    subset_plots_cdr,
-    all_subset_plots(subset_data_cdr, use_cdr = TRUE)
-  ),
-  # Quarto document for results
   tar_quarto(plots_and_corrs, path = "./R/plots_and_corrs.qmd", quiet = FALSE)
 )

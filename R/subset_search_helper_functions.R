@@ -148,7 +148,7 @@ all_subset_plots <- function(data, extra_title = "", use_cdr = FALSE) {
 }
 
 
-marker_subset <- function(
+run_single_subset <- function(
   data,
   outcome,
   reference,
@@ -173,14 +173,12 @@ marker_subset <- function(
     select(-mean_ab42_ab40_ratio) |>
     drop_na()
 
-  out <-
-    backwards_search(
-      data,
-      outcome = outcome,
-      reference = reference,
-      threshold = 1
-    )
-  return(out)
+  backwards_search(
+    data,
+    outcome = outcome,
+    reference = reference,
+    threshold = 1
+  )
 }
 
 ## Backwards search for best minimal subset of biomarkers
@@ -349,22 +347,6 @@ get_ref_sub_AUC <- function(
 }
 
 ## Helper functions for parallel subset analysis
-
-run_single_subset <- function(
-  data,
-  target_diagnosis,
-  comparators,
-  sex_strat = "",
-  use_cdr = FALSE
-) {
-  marker_subset(
-    data = data,
-    outcome = target_diagnosis,
-    reference = comparators,
-    sex_strat = sex_strat,
-    use_cdr = use_cdr
-  )
-}
 
 prepare_subset_data <- function(data, sex_strat = "", use_cdr = FALSE) {
   if (sex_strat != "") {

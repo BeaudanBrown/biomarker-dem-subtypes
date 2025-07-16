@@ -73,58 +73,6 @@ prepare_roc_data <- function(df, with_fasting = "no") {
   return(roc_df)
 }
 
-## Individual ROC computation
-
-run_single_roc <- function(roc_data, comparison_type) {
-  roc_definitions <- list(
-    "AD_vs_Control" = list(
-      target = "Alzheimer's",
-      comparators = "Control",
-      title = "Alzheimer's vs control"
-    ),
-    "FTD_vs_Control" = list(
-      target = "Frontotermporal",
-      comparators = "Control",
-      title = "Frontotermporal vs control"
-    ),
-    "LBD_vs_Control" = list(
-      target = "Lewy bodies",
-      comparators = "Control",
-      title = "Lewy bodies vs control"
-    ),
-    "LBD_vs_FTD" = list(
-      target = "Lewy bodies",
-      comparators = "Frontotermporal",
-      title = "Lewy bodies vs frontotemporal"
-    ),
-    "AD_vs_Others" = list(
-      target = "Alzheimer's",
-      comparators = c("Frontotermporal", "Lewy bodies"),
-      title = "Alzheimer's vs other dementias"
-    ),
-    "LBD_vs_Others" = list(
-      target = "Lewy bodies",
-      comparators = c("Frontotermporal", "Alzheimer's"),
-      title = "Lewy bodies vs other dementias"
-    ),
-    "FTD_vs_Others" = list(
-      target = "Frontotermporal",
-      comparators = c("Lewy bodies", "Alzheimer's"),
-      title = "Frontotemporal vs other dementias"
-    )
-  )
-
-  def <- roc_definitions[[comparison_type]]
-  run_and_plot_roc(roc_data, def$target, def$comparators, def$title)
-}
-
-## Get all ROC curves
-
-all_rocs <- function(df, with_fasting = "no") {
-  roc_df <- prepare_roc_data(df, with_fasting)
-  get_all_rocs(roc_df)
-}
-
 ## combined roc curve
 
 get_combined_roc <- function(roc_results) {
@@ -149,7 +97,7 @@ get_combined_roc <- function(roc_results) {
 
 ## ROCs by sex
 
-rocs_by_sex <- function(df) {
+rocs_by_sex <- function(df, sex_roc_results) {
   roc_df <-
     df |>
     select(
@@ -167,7 +115,6 @@ rocs_by_sex <- function(df) {
       female
     )
 
-  sex_rec_results <- get_all_sex_rocs(roc_df)
   sex_label_map <- c(
     "MEN" = "Men (AUC: %s)",
     "WOMEN" = "Women (AUC: %s)"
@@ -176,8 +123,8 @@ rocs_by_sex <- function(df) {
   #### AD ####
   ad_plot <- plot_roc_combined(
     roc_list = list(
-      MEN = sex_rec_results$men$AD_vs_Others$roc_result,
-      WOMEN = sex_rec_results$women$AD_vs_Others$roc_result
+      MEN = sex_roc_results$men$AD_vs_Others$roc_result,
+      WOMEN = sex_roc_results$women$AD_vs_Others$roc_result
     ),
     title_text = "AD vs other dementias",
     label_map = sex_label_map
@@ -186,8 +133,8 @@ rocs_by_sex <- function(df) {
   #### LBD ####
   lbd_plot <- plot_roc_combined(
     roc_list = list(
-      MEN = sex_rec_results$men$LBD_vs_Others$roc_result,
-      WOMEN = sex_rec_results$women$LBD_vs_Others$roc_result
+      MEN = sex_roc_results$men$LBD_vs_Others$roc_result,
+      WOMEN = sex_roc_results$women$LBD_vs_Others$roc_result
     ),
     title_text = "LBD vs other dementias",
     label_map = sex_label_map
@@ -196,8 +143,8 @@ rocs_by_sex <- function(df) {
   #### FTD ####
   ftd_plot <- plot_roc_combined(
     roc_list = list(
-      MEN = sex_rec_results$men$FTD_vs_Others$roc_result,
-      WOMEN = sex_rec_results$women$FTD_vs_Others$roc_result
+      MEN = sex_roc_results$men$FTD_vs_Others$roc_result,
+      WOMEN = sex_roc_results$women$FTD_vs_Others$roc_result
     ),
     title_text = "FTD vs other dementias",
     label_map = sex_label_map
