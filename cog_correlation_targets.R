@@ -31,7 +31,7 @@ list(
   ),
   tar_target(
     cdr_plots,
-    get_marker_plots(all_cohorts, outcome = "cdr"),
+    get_marker_plots(all_cohorts, outcome = "CDR"),
     pattern = map(all_cohorts)
   )
 )

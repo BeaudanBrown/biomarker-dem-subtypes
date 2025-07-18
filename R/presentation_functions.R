@@ -220,23 +220,32 @@ get_marker_plots <- function(cohort, outcome) {
 get_marker_plot <- function(cohort, predictor, outcome) {
   cohort_name <- names(cohort)
   df <- cohort[[cohort_name]]
+
+  rename_map <- c(
+    "CD14" = "mean_elisa",
+    "NfL" = "mean_nfl",
+    "YKL-40" = "mean_ykl",
+    "GFAP" = "mean_gfap",
+    "AB42/AB40 Ratio" = "mean_ab42_ab40_ratio",
+    "AB40" = "mean_ab40",
+    "AB42" = "mean_ab42",
+    "TDP-43" = "mean_tdp",
+    "pTau-181" = "mean_ptau181",
+    "pTau-217" = "mean_ptau217",
+    "CSF AB Ratio" = "CSF_AB_Ratio",
+    "CDR" = "cdr",
+    "PET Z-Score" = "zscore",
+    "PET Centiloid" = "centiloid",
+    "PET Raw SUVR" = "raw_suvr"
+  )
+  existing <- unlist(rename_map)[unlist(rename_map) %in% names(df)]
+  df <- df |> rename(!!!existing)
+
   tibble(
     cohort = cohort_name,
     predictor = predictor,
     plot = list(
       df |>
-        rename(
-          "CD14" = "mean_elisa",
-          "NfL" = "mean_nfl",
-          "YKL-40" = "mean_ykl",
-          "GFAP" = "mean_gfap",
-          "AB42/AB40 Ratio" = "mean_ab42_ab40_ratio",
-          "AB40" = "mean_ab40",
-          "AB42" = "mean_ab42",
-          "TDP-43" = "mean_tdp",
-          "pTau-181" = "mean_ptau181",
-          "pTau-217" = "mean_ptau217"
-        ) |>
         filter(!is.na(.data[[predictor]]) & !is.na(.data[[outcome]])) |>
         ggplot(aes(
           x = .data[[predictor]],

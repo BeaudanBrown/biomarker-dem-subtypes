@@ -1,4 +1,10 @@
-plot_auc_steps <- function(data, outcome, extra_title = "", use_cdr = TRUE) {
+plot_auc_steps <- function(
+  data,
+  outcome,
+  extra_title = "",
+  use_cdr = FALSE,
+  use_sex = TRUE
+) {
   # Order by step
   data <- data %>% arrange(step)
 
@@ -8,15 +14,15 @@ plot_auc_steps <- function(data, outcome, extra_title = "", use_cdr = TRUE) {
     arrange(step) %>%
     pull(removed_var)
 
-  # Create a fixed list of all variables, ordered by removal (reverse order)
-  # Last removed at the top, first removed at the bottom, with covariates at the very bottom
   all_vars <- c(
-    rev(removed_vars_order), # Biomarkers in reverse removal order
-    "Age", # Covariates at the bottom
-    "Sex"
+    rev(removed_vars_order),
+    "Age"
   )
   if (use_cdr) {
     all_vars <- c(all_vars, "CDR")
+  }
+  if (use_sex) {
+    all_vars <- c(all_vars, "Sex")
   }
 
   create_step_labels <- function(step) {

@@ -17,7 +17,7 @@ subset_targets <- list(
     ),
     tar_target(
       subset_plot_full,
-      plot_auc_steps(subset_path_full, comparison)
+      plot_auc_steps(subset_path_full, target_diagnosis)
     )
   ),
   tar_target(
@@ -49,6 +49,7 @@ subset_targets <- list(
       plot_auc_steps(
         subset_path_men,
         target_diagnosis,
+        use_sex = FALSE,
         extra_title = " - Men"
       )
     )
@@ -82,6 +83,7 @@ subset_targets <- list(
       plot_auc_steps(
         subset_path_women,
         target_diagnosis,
+        use_sex = FALSE,
         extra_title = " - Women"
       )
     )
@@ -115,6 +117,7 @@ subset_targets <- list(
       plot_auc_steps(
         subset_path_cdr,
         target_diagnosis,
+        use_cdr = TRUE,
         extra_title = " - CDR Adjusted"
       )
     )

@@ -13,7 +13,7 @@ list(
   ),
   tar_target(
     pet_zscore_plots,
-    get_marker_plots(all_cohorts, outcome = "zscore"),
+    get_marker_plots(all_cohorts, outcome = "PET Z-Score"),
     pattern = map(all_cohorts)
   ),
 
@@ -31,7 +31,7 @@ list(
   ),
   tar_target(
     pet_centiloid_plots,
-    get_marker_plots(all_cohorts, outcome = "centiloid"),
+    get_marker_plots(all_cohorts, outcome = "PET Centiloid"),
     pattern = map(all_cohorts)
   ),
 
@@ -49,7 +49,7 @@ list(
   ),
   tar_target(
     pet_raw_suvr_plots,
-    get_marker_plots(all_cohorts, outcome = "raw_suvr"),
+    get_marker_plots(all_cohorts, outcome = "PET Raw SUVR"),
     pattern = map(all_cohorts)
   )
 )

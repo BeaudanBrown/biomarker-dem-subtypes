@@ -78,52 +78,6 @@ get_adjusted_corr <- function(cohort, outcome, predictor) {
   )
 }
 
-make_beta_table <- function(
-  data,
-  id_col,
-  id_label
-) {
-  idq <- enquo(id_col)
-  id_nm <- quo_name(idq)
-
-  data <- data |>
-    filter(cohort != "All Subtypes") |>
-    group_by(cohort) |>
-    mutate(cohort = glue::glue("{cohort} (n={max(n)})")) |>
-    ungroup()
-
-  cohorts <- data |>
-    distinct(cohort) |>
-    pull(cohort)
-  nc <- length(cohorts)
-
-  df_wide <- data |>
-    pivot_wider(
-      id_cols = !!idq,
-      names_from = cohort,
-      values_from = c(estimate, p),
-      names_glue = "{cohort}_{.value}"
-    )
-
-  col_order <- c(
-    id_nm,
-    unlist(lapply(cohorts, function(co) paste0(co, "_", c("estimate", "p"))))
-  )
-  df_wide <- df_wide[, col_order]
-
-  bottom_header <- c(id_label, rep(c("Beta", "P-value"), times = nc))
-  top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
-
-  df_wide |>
-    kableExtra::kable(
-      format = "html",
-      booktabs = TRUE,
-      col.names = bottom_header
-    ) |>
-    kableExtra::add_header_above(top_header) |>
-    kableExtra::kable_styling(latex_options = "striped", full_width = FALSE)
-}
-
 get_marker_table <- function(corr_data) {
   corr_data <- corr_data |>
     filter(cohort != "All Subtypes") |>
@@ -152,7 +106,26 @@ get_marker_table <- function(corr_data) {
       lapply(cohorts, function(x) paste0(x, "_", c("estimate", "p")))
     )
   )
-  df_wide <- df_wide[, col_order]
+  df_wide <- df_wide[, col_order] |>
+    mutate(
+      predictor = case_when(
+        predictor == "mean_elisa" ~ "CD14",
+        predictor == "mean_nfl" ~ "NfL",
+        predictor == "mean_ykl" ~ "YKL-40",
+        predictor == "mean_gfap" ~ "GFAP",
+        predictor == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
+        predictor == "mean_ab40" ~ "AB40",
+        predictor == "mean_ab42" ~ "AB42",
+        predictor == "mean_tdp" ~ "TDP-43",
+        predictor == "mean_ptau181" ~ "pTau-181",
+        predictor == "mean_ptau217" ~ "pTau-217",
+        predictor == "cdr" ~ "CDR",
+        predictor == "zscore" ~ "PET Z-Score",
+        predictor == "centiloid" ~ "PET Centiloid",
+        predictor == "raw_suvr" ~ "PET Raw SUVR",
+        TRUE ~ predictor
+      )
+    )
 
   bottom_header <- c("Predictor", rep(c("Beta", "P‐value"), times = nc))
   top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
@@ -189,36 +162,6 @@ get_marker_corrs <- function(cohort, outcome) {
         predictor = marker
       )
     }
-  ))
-}
-
-csf_corr <- function(df, diagnosis = NULL) {
-  if (!is.null(diagnosis)) {
-    df <- df[df$Diagnosis_combined %in% diagnosis, ]
-  }
-  washington <- standardise_df(df) |>
-    filter(!is.na(mean_ptau217) & !is.na(CSF_AB_Ratio))
-
-  get_ptau_csf_corr <- function(csf_marker) {
-    ptau_coef <- washington |>
-      lm(
-        as.formula(paste0(
-          csf_marker,
-          " ~ ",
-          paste("mean_ptau217", "age", "female", sep = " + ")
-        )),
-        data = _
-      ) |>
-      coef()
-
-    ptau_coef["mean_ptau217"]
-  }
-  csf_markers <- washington |>
-    select(CSF_AB_Ratio) |>
-    names()
-  return(list(
-    n = nrow(washington),
-    coefs = sapply(csf_markers, get_ptau_csf_corr)
   ))
 }
 
