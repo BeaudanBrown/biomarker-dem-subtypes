@@ -1,7 +1,9 @@
 subset_comparisons <- roc_defs |> filter(str_ends(comparison, "Others"))
+subset_comparisons_ftd <- roc_defs |>
+  filter(str_ends(comparison, "Others") | str_ends(comparison, "FTD"))
 subset_targets <- list(
   tar_map(
-    values = subset_comparisons,
+    values = subset_comparisons_ftd,
     names = comparison,
     tar_target(
       subset_result_full,
@@ -17,7 +19,7 @@ subset_targets <- list(
     ),
     tar_target(
       subset_plot_full,
-      plot_auc_steps(subset_path_full, target_diagnosis)
+      plot_auc_steps(subset_path_full, title)
     )
   ),
   tar_target(
@@ -25,7 +27,8 @@ subset_targets <- list(
     list(
       ad = subset_plot_full_AD_vs_Others,
       ftd = subset_plot_full_FTD_vs_Others,
-      lbd = subset_plot_full_LBD_vs_Others
+      lbd = subset_plot_full_LBD_vs_Others,
+      lbd_vs_ftd = subset_plot_full_LBD_vs_FTD
     )
   ),
   tar_map(
@@ -48,7 +51,7 @@ subset_targets <- list(
       subset_plot_men,
       plot_auc_steps(
         subset_path_men,
-        target_diagnosis,
+        title,
         use_sex = FALSE,
         extra_title = " - Men"
       )
@@ -82,7 +85,7 @@ subset_targets <- list(
       subset_plot_women,
       plot_auc_steps(
         subset_path_women,
-        target_diagnosis,
+        title,
         use_sex = FALSE,
         extra_title = " - Women"
       )
@@ -116,7 +119,7 @@ subset_targets <- list(
       subset_plot_cdr,
       plot_auc_steps(
         subset_path_cdr,
-        target_diagnosis,
+        title,
         use_cdr = TRUE,
         extra_title = " - CDR Adjusted"
       )

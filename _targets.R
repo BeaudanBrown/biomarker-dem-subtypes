@@ -17,7 +17,7 @@ plan(multicore)
 unlink("./logs/*", recursive = FALSE)
 crew_controller_global <- crew_controller_local(
   options_local = crew_options_local(log_directory = "./logs"),
-  workers = 11
+  workers = future::availableCores() - 1
 )
 tar_option_set(error = "null")
 
@@ -73,9 +73,10 @@ tar_option_set(
 # Run the R scripts in the R/ folder
 tar_source()
 
-# Set data table cores to 1
-
-data.table::setDTthreads(1)
+Sys.setenv(R_DATATABLE_NUM_THREADS = 1)
+Sys.setenv(OMP_NUM_THREADS = 1)
+Sys.setenv(MKL_NUM_THREADS = 1)
+Sys.setenv(OPENBLAS_NUM_THREADS = 1)
 
 source("roc_targets.R")
 source("subset_targets.R")

@@ -8,6 +8,25 @@ dem_names <- c(
 
 ## Data preparation for ROC analysis
 
+prepare_roc_data_cdr <- function(df) {
+  df |>
+    select(
+      Diagnosis_combined,
+      age,
+      mean_elisa,
+      mean_nfl,
+      mean_ykl,
+      mean_gfap,
+      mean_ab40,
+      mean_ab42,
+      mean_tdp,
+      mean_ptau181,
+      mean_ptau217,
+      female,
+      cdr
+    )
+}
+
 prepare_roc_data <- function(df, with_fasting = "no") {
   if (with_fasting == "yes") {
     setDT(df)

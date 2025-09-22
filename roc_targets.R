@@ -49,6 +49,10 @@ roc_targets <- list(
     roc_data_prepared_fasting,
     prepare_roc_data(df, with_fasting = "yes")
   ),
+  tar_target(
+    roc_data_prepared_cdr,
+    prepare_roc_data_cdr(df)
+  ),
 
   # ===================================================================
   # Primary analysis
@@ -82,6 +86,39 @@ roc_targets <- list(
     )
   ),
   tar_target(combined_roc, get_combined_roc(roc_results)),
+
+  # ===================================================================
+  # CDR Adjusted
+  # ===================================================================
+  tar_map(
+    values = roc_defs,
+    names = comparison,
+    tar_target(
+      roc_cdr_result,
+      auroc(roc_data_prepared_cdr, target_diagnosis, comparators)
+    ),
+    tar_target(
+      roc_cdr_plot,
+      plot_roc(roc_cdr_result, title)
+    ),
+    tar_target(
+      roc_cdr_merged,
+      list(roc_result = roc_cdr_result, roc_plot = roc_cdr_plot)
+    )
+  ),
+  tar_target(
+    roc_results_cdr,
+    list(
+      AD_vs_Control = roc_cdr_merged_AD_vs_Control,
+      FTD_vs_Control = roc_cdr_merged_FTD_vs_Control,
+      LBD_vs_Control = roc_cdr_merged_LBD_vs_Control,
+      LBD_vs_FTD = roc_cdr_merged_LBD_vs_FTD,
+      AD_vs_Others = roc_cdr_merged_AD_vs_Others,
+      LBD_vs_Others = roc_cdr_merged_LBD_vs_Others,
+      FTD_vs_Others = roc_cdr_merged_FTD_vs_Others
+    )
+  ),
+  tar_target(combined_roc_cdr, get_combined_roc(roc_results_cdr)),
 
   # ===================================================================
   # Fasting Adjusted

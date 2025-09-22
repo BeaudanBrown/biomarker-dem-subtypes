@@ -28,6 +28,20 @@ tar_read(combined_roc)
 ```
 :::
 
+## ROC curves: each dementia subtypes vs others - Fasting adjusted
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
+```{r}
+tar_read(combined_roc_fasting)
+```
+:::
+
+## ROC curves: each dementia subtypes vs others - CDR adjusted
+::: {.my-table-wrapper style="width:70%; margin:auto;"}
+```{r}
+tar_read(combined_roc_cdr)
+```
+:::
+
 ## ROC curves: each dementia subtypes vs others by sex
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
@@ -208,6 +222,7 @@ plots <- tar_read(subset_plots_full)
 plots$ad
 plots$ftd
 plots$lbd
+plots$lbd_vs_ftd
 ```
 
 ```{r}
