@@ -170,7 +170,7 @@ run_single_subset <- function(
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ] |>
     select(all_of(vars), starts_with("mean_")) |>
-    select(-mean_ab42_ab40_ratio) |>
+    select(-mean_ab42, -mean_ab40) |>
     drop_na()
 
   backwards_search(
