@@ -88,7 +88,8 @@ build_path <- function(path_data) {
     "mean_ab42",
     "mean_tdp",
     "mean_ptau181",
-    "mean_ptau217"
+    "mean_ptau217",
+    "mean_ab42_ab40_ratio"
   )
   # Create a named vector for variable mapping
   var_mapping <- c(
@@ -100,7 +101,8 @@ build_path <- function(path_data) {
     "mean_ab42" = "AB42",
     "mean_tdp" = "TDP-43",
     "mean_ptau181" = "pTau-181",
-    "mean_ptau217" = "pTau-217"
+    "mean_ptau217" = "pTau-217",
+    "mean_ab42_ab40_ratio" = "AB-Ratio"
   )
 
   # Function to get remaining variables at each step

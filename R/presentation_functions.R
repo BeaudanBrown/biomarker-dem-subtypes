@@ -80,9 +80,8 @@ prepare_roc_data <- function(df, with_fasting = "no") {
         mean_nfl,
         mean_ykl,
         mean_gfap,
-        mean_ab40,
-        mean_ab42,
         mean_tdp,
+        mean_ab42_ab40_ratio,
         mean_ptau181,
         mean_ptau217,
         female
