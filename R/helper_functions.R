@@ -192,11 +192,10 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
   new_levels <- sapply(
     groups,
     function(g) {
-      auc_val <- round(
-        mean(combined_data[combined_data[["comparison"]] == g, "AUC"][[1]]),
-        2
-      )
-      sprintf(label_map[[g]], auc_val)
+      auc_val <- mean(combined_data[combined_data[["comparison"]] == g, "AUC"][[
+        1
+      ]])
+      sprintf(gsub("%s", "%.2f", label_map[[g]]), auc_val)
     },
     simplify = TRUE,
     USE.NAMES = FALSE
@@ -228,10 +227,13 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
       title = title_text,
       colour = NULL
     ) +
-    bayesplot::theme_default() +
+    bayesplot::theme_default(base_size = 14) +
     scale_color_colorblind() +
-    theme(legend.position = "bottom") +
-    guides(colour = guide_legend(nrow = 2))
+    theme(
+      legend.position = c(0.75, 0.5),
+      legend.text = element_text(size = 14)
+    ) +
+    guides(colour = guide_legend(nrow = 3))
 
   # Save the plot and return it
   ggsave(

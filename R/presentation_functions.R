@@ -199,7 +199,7 @@ subtypes_vs_control <- function(roc_results) {
   outcome_label_map <- c(
     "AD" = "AD vs control (AUC: %s)",
     "FTD" = "FTD vs control (AUC: %s)",
-    "LBD" = "LBD vs control (AUC: %s)"
+    "LBD" = "LBD/PD vs control (AUC: %s)"
   )
   plot_roc_combined(
     roc_list = roc_combined,

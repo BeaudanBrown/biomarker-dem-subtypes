@@ -98,7 +98,7 @@ list(
   # clean data
   tar_target(df_with_csf, clean_data(joined_with_csf)),
   tar_target(demo_table, demos(as.data.table(df))),
-  # tar_target(subtypes_control, subtypes_vs_control(roc_results)),
+  tar_target(subtypes_control, subtypes_vs_control(roc_results)),
   # CSF marker and plasma marker partial rank order correlations
   tar_target(csf_rank_cors, csf_rank_corr(df_with_csf)),
   # Variable importance overall
