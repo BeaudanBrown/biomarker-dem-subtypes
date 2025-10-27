@@ -31,6 +31,7 @@ subset_targets <- list(
       lbd_vs_ftd = subset_plot_full_LBD_vs_FTD
     )
   ),
+  tar_target(subset_plot_combined, combine_subset_plots(subset_plots_full)),
   tar_map(
     values = subset_comparisons,
     names = comparison,

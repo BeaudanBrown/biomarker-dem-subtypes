@@ -77,6 +77,38 @@ plot_auc_steps <- function(
   return(p)
 }
 
+combine_subset_plots <- function(plots) {
+  ad <- plots$ad +
+    ggtitle("A. AD Vs Other Dementias") +
+    labs(x = "") +
+    theme(
+      plot.title = element_text(size = 10, face = "bold"),
+      axis.title = element_text(size = 10),
+      axis.text.y = element_text(size = 9),
+      axis.text.x = element_text(size = 9)
+    )
+  lbd <- plots$lbd +
+    ggtitle("C. FTD Vs Other Dementias") +
+    labs(x = "") +
+    theme(
+      plot.title = element_text(size = 10, face = "bold"),
+      axis.title = element_text(size = 10),
+      axis.text.y = element_text(size = 9),
+      axis.text.x = element_text(size = 9)
+    )
+  ftd <- plots$ftd +
+    ggtitle("B. LBD/PD Vs Other Dementias") +
+    theme(
+      plot.title = element_text(size = 10, face = "bold"),
+      axis.title = element_text(size = 10),
+      axis.text.y = element_text(size = 9),
+      axis.text.x = element_text(size = 9)
+    )
+  plot <- ad + lbd + ftd + plot_layout(ncol = 1, guides = "auto")
+  ggsave("plots/Figure_2.png", plot, device = "png", width = 8, height = 12)
+  plot
+}
+
 build_path <- function(path_data) {
   ref_auc <- path_data$reference_auc
   all_vars <- c(
