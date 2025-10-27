@@ -133,7 +133,7 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
     TPR = TPR,
     FPR = FPR
   ) |>
-    mutate(comparison = paste0("LBD vs FTD (AUC: ", round(AUC, 2), ")")) |>
+    mutate(comparison = paste0("LBD/PD vs FTD (AUC: ", round(AUC, 2), ")")) |>
     ggplot(aes(x = FPR, y = TPR, colour = comparison)) +
     geom_path(size = 1) +
     geom_abline(
@@ -146,10 +146,10 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
     labs(
       x = "False Positive Rate (1 - Specificity)",
       y = "True Positive Rate (Sensitivity)",
-      title = title_text,
+      title = "",
       colour = NULL
     ) +
-    bayesplot::theme_default() +
+    bayesplot::theme_default(base_size = 14) +
     theme(legend.position = "bottom")
 
   ggsave(

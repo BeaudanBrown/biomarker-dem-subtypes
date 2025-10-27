@@ -203,7 +203,20 @@ rocs_by_sex <- function(df, sex_roc_results) {
     col.names = c("Diagnosis", "Men N (%)", "Women N (%)", "Total")
   )
 
-  list(gender_diag_table, ad_plot, lbd_plot, ftd_plot)
+  list(
+    gender_diag_table = gender_diag_table,
+    ad_plot = ad_plot,
+    lbd_plot = lbd_plot,
+    ftd_plot = ftd_plot
+  )
+}
+
+combine_sex_roc_plots <- function(sex_specific_plots) {
+  ad <- sex_specific_plots[["ad_plot"]] + ggtitle("AD Vs Other Dementias")
+  lbd <- sex_specific_plots[["lbd_plot"]] +
+    ggtitle("LBD/PD Vs Other Dementias")
+  ftd <- sex_specific_plots[["ftd_plot"]] + ggtitle("FTD Vs Other Dementias")
+  ad / lbd / ftd
 }
 
 ## Dementia subtypes vs control

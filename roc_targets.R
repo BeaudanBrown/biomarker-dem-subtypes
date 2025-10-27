@@ -240,5 +240,11 @@ roc_targets <- list(
   tar_target(
     sex_specific_rocs,
     rocs_by_sex(df, sex_rocs)
+  ),
+  tar_target(
+    roc_sex_plot_combined,
+    combine_sex_roc_plots(
+      sex_specific_rocs
+    )
   )
 )
