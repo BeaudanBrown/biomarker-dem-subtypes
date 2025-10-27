@@ -457,3 +457,45 @@ vimp_by_sex <- function(df, stratification) {
 
   tables
 }
+
+demos <- function(dt) {
+  # dt<-as.data.table(tar_read(df))
+  drop_cols <- c(
+    "Diagnosis_combined",
+    "age",
+    "mean_elisa",
+    "mean_nfl",
+    "mean_ykl",
+    "mean_gfap",
+    "mean_tdp",
+    "mean_ab42_ab40_ratio",
+    "mean_ptau181",
+    "mean_ptau217",
+    "female"
+  )
+
+  dt <- dt[complete.cases(dt[, ..drop_cols])]
+
+  dt[, .(
+    Diagnosis_combined,
+    Site,
+    age,
+    female,
+    race_combined,
+    APOE,
+    mean_ptau181,
+    mean_nfl,
+    mean_ab40,
+    mean_ab42,
+    mean_ab42_ab40_ratio,
+    mean_gfap,
+    mean_ykl,
+    mean_tdp,
+    mean_ptau217,
+    mean_elisa
+  )] |>
+    gtsummary::tbl_summary(
+      by = Diagnosis_combined,
+      missing = "ifany"
+    )
+}

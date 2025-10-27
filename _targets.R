@@ -100,6 +100,7 @@ list(
   # tar_target(subtypes_control, subtypes_vs_control(roc_results)),
   # CSF marker and plasma marker partial rank order correlations
   tar_target(csf_rank_cors, csf_rank_corr(df_with_csf)),
+  tar_target(demo_table, demos(as.data.table(df))),
   # Variable importance overall
   # tar_target(vimp_full, vimp_overall(df)),
   # Variable importance for females
