@@ -230,7 +230,7 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
     bayesplot::theme_default(base_size = 14) +
     scale_color_colorblind() +
     theme(
-      legend.position = c(0.75, 0.5),
+      legend.position = c(0.8, 0.45),
       legend.text = element_text(size = 14)
     ) +
     guides(colour = guide_legend(nrow = 3))

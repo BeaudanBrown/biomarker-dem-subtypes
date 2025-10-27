@@ -87,6 +87,10 @@ roc_targets <- list(
   ),
   tar_target(combined_roc, get_combined_roc(roc_results)),
   tar_target(subtypes_control, subtypes_vs_control(roc_results)),
+  tar_target(
+    subtypes_control_plot,
+    combine_subtype_control(combined_roc, subtypes_control)
+  ),
 
   # ===================================================================
   # CDR Adjusted

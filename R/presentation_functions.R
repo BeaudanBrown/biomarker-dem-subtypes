@@ -111,6 +111,24 @@ get_combined_roc <- function(roc_results) {
   )
 }
 
+combine_subtype_control <- function(subtype_rocs, control_rocs) {
+  subtype_rocs <- subtype_rocs +
+    ggtitle("A") +
+    theme(
+      legend.spacing.y = unit(1, "cm"),
+      legend.key.height = unit(1, "cm"),
+      plot.title = element_text(face = "bold")
+    )
+  control_rocs <- control_rocs +
+    ggtitle("B") +
+    theme(
+      legend.spacing.y = unit(1, "cm"),
+      legend.key.height = unit(1, "cm"),
+      plot.title = element_text(face = "bold")
+    )
+  subtype_rocs / control_rocs
+}
+
 ## ROCs by sex
 
 rocs_by_sex <- function(df, sex_roc_results) {
