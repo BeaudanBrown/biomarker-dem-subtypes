@@ -105,21 +105,21 @@ clean_data <- function(df, keep_cd14 = TRUE) {
       )
     ))
 
-  return(df)
+  df |> filter(complete.cases(select(df, starts_with("mean_"))))
 }
 
 #### Descriptives ####
 show_descriptives <- function(df) {
   # histograms
 
-  df |>
+  hists <- df |>
     select(starts_with("mean_")) |>
     mutate(across(c("mean_ykl", "mean_tdp", "mean_nfl"), log)) |>
     psych::multi.hist(global = FALSE, breaks = 30)
 
   # density plot
 
-  df |>
+  density_plot <- df |>
     filter(!Diagnosis_combined == "Control") |>
     # remove large ab42/ab40 ratio outlier
     mutate(
@@ -153,48 +153,50 @@ show_descriptives <- function(df) {
       )
     ) |>
     ggplot(aes(x = value, fill = Diagnosis_combined)) +
-    geom_density(alpha = 0.25) +
-    facet_wrap(~biomarker, scales = "free") +
+    geom_density(alpha = 0.7, size = 0.3) +
+    facet_wrap(~biomarker, scales = "free", ncol = 3) +
     labs(
       x = "Biomarker concentration",
       y = "Density",
-      fill = "Dementia status"
+      fill = "Diagnosis"
     ) +
-    scale_fill_colorblind() +
-    bayesplot::theme_default() +
-    theme(legend.position = "bottom")
-
-  # ggsave("plots/conc_by_status.png",
-  #   device = "png",
-  #   width = 10, height = 10, bg = "white"
-  # )
+    scale_fill_viridis_d(option = "plasma", begin = 0.1, end = 0.9) +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom",
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.text = element_text(size = 10),
+      axis.title = element_text(size = 12, face = "bold"),
+      axis.text = element_text(size = 10),
+      strip.text = element_text(size = 11, face = "bold"),
+      strip.background = element_rect(fill = "grey95", color = "grey80"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "grey95", size = 0.3),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.spacing = unit(0.5, "cm")
+    )
 
   # table
 
-  df |>
+  table <- df |>
+    mutate(APOE_combined = as.factor(coalesce(APOE, apoe))) |>
     select(
       Diagnosis_combined,
       age,
       female,
       Site,
       race_combined,
+      APOE_combined,
       starts_with("mean_")
     ) |>
-    mutate(across(
-      c("mean_ykl", "mean_tdp", "mean_nfl"),
-      log,
-      .names = "log_{.col}"
-    )) |>
-    select(-mean_ykl, -mean_tdp, -mean_nfl) |>
     tbl_summary(
-      by = Diagnosis_combined,
-      missing = "no"
+      by = Diagnosis_combined
     ) |>
     add_p()
 
   ## Reliability
 
-  df |>
+  reliability <- df |>
     select(Diagnosis_combined, ends_with("_ICC")) |>
     pivot_longer(-Diagnosis_combined, names_to = "biomarker") |>
     filter(!biomarker == "elisa_ICC") |>
@@ -214,6 +216,13 @@ show_descriptives <- function(df) {
     group_by(biomarker) |>
     summarise(ICC = mean(value, na.rm = TRUE)) |>
     knitr::kable()
+
+  return(list(
+    hists = hists,
+    density_plot = density_plot,
+    table = table,
+    reliability = reliability
+  ))
 }
 
 #### variable importance ####

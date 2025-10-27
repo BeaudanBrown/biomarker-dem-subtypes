@@ -101,7 +101,7 @@ get_combined_roc <- function(roc_results) {
   outcome_label_map <- c(
     "AD" = "AD vs others (AUC: %s)",
     "FTD" = "FTD vs others (AUC: %s)",
-    "LBD" = "LBD vs others (AUC: %s)"
+    "LBD" = "LBD/PD vs others (AUC: %s)"
   )
 
   plot_roc_combined(
@@ -459,23 +459,13 @@ vimp_by_sex <- function(df, stratification) {
 }
 
 demos <- function(dt) {
-  # dt<-as.data.table(tar_read(df))
-  drop_cols <- c(
-    "Diagnosis_combined",
-    "age",
-    "mean_elisa",
-    "mean_nfl",
-    "mean_ykl",
-    "mean_gfap",
-    "mean_tdp",
-    "mean_ab42_ab40_ratio",
-    "mean_ptau181",
-    "mean_ptau217",
-    "female"
-  )
-
-  dt <- dt[complete.cases(dt[, ..drop_cols])]
-
+  dt[,
+    race_combined := ifelse(
+      race_combined == "American Indian/Alaska Native",
+      "Other",
+      race_combined
+    )
+  ]
   dt[, .(
     Diagnosis_combined,
     Site,
