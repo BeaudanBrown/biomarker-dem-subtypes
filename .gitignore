@@ -3,6 +3,7 @@
 *.html
 data/
 plots/
+archive/
 logs/
 .targets_beau/
 to do

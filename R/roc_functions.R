@@ -2,7 +2,6 @@
 
 auroc <- function(data, outcome, reference, nfolds = 10) {
   # filter to outcome and reference
-  set.seed(Sys.getenv("SEED"))
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
 
