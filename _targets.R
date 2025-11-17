@@ -97,14 +97,9 @@ list(
   tar_target(joined_with_csf, add_extra_csf(joined, addf_csf_file)),
   # clean data
   tar_target(df_with_csf, clean_data(joined_with_csf)),
-  tar_target(demo_table, demos(as.data.table(df))),
+  tar_target(descriptives, show_descriptives(df)),
   # CSF marker and plasma marker partial rank order correlations
   tar_target(csf_rank_cors, csf_rank_corr(df_with_csf)),
-  # Variable importance overall
-  # tar_target(vimp_full, vimp_overall(df)),
-  # Variable importance for females
-  # tar_target(vimp_females, vimp_by_sex(df, "female")),
-  # Variable importance for males
-  # tar_target(vimp_males, vimp_by_sex(df, "male")),
+  # Render quarto doc
   tar_quarto(plots_and_corrs, path = "./R/plots_and_corrs.qmd", quiet = FALSE)
 )

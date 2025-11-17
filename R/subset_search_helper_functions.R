@@ -147,7 +147,6 @@ all_subset_plots <- function(data, extra_title = "", use_cdr = FALSE) {
   list(ad = ad_plot, ftd = ftd_plot, lbd = lbd_plot)
 }
 
-
 run_single_subset <- function(
   data,
   outcome,
@@ -155,7 +154,6 @@ run_single_subset <- function(
   sex_strat = "",
   use_cdr = FALSE
 ) {
-  set.seed(Sys.getenv("SEED"))
   if (sex_strat != "") {
     data <- data |>
       filter(female == ifelse(sex_strat == "female", 1, 0)) |>

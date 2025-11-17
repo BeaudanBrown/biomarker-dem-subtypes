@@ -6,89 +6,6 @@ dem_names <- c(
   "Lewy bodies"
 )
 
-## Data preparation for ROC analysis
-
-prepare_roc_data_cdr <- function(df) {
-  df |>
-    select(
-      Diagnosis_combined,
-      age,
-      mean_elisa,
-      mean_nfl,
-      mean_ykl,
-      mean_gfap,
-      mean_ab42_ab40_ratio,
-      mean_tdp,
-      mean_ptau181,
-      mean_ptau217,
-      female,
-      cdr
-    )
-}
-
-prepare_roc_data <- function(df, with_fasting = "no") {
-  if (with_fasting == "yes") {
-    setDT(df)
-
-    df[,
-      fasting_combined := ifelse(
-        is.na(Fasting_Status),
-        Fasting_8_hours,
-        Fasting_Status
-      )
-    ][,
-      fasting_combined := ifelse(
-        fasting_combined == "Unknown" |
-          fasting_combined == "unknown",
-        NA,
-        fasting_combined
-      )
-    ][,
-      fasting_combined := ifelse(
-        fasting_combined == "non-fasted",
-        "No",
-        fasting_combined
-      )
-    ] |>
-      as_tibble()
-
-    roc_df <-
-      df |>
-      select(
-        Diagnosis_combined,
-        age,
-        mean_elisa,
-        mean_nfl,
-        mean_ykl,
-        mean_gfap,
-        mean_ab42_ab40_ratio,
-        mean_tdp,
-        mean_ptau181,
-        mean_ptau217,
-        female,
-        fasting_combined
-      )
-  } else {
-    roc_df <-
-      df |>
-      select(
-        Diagnosis_combined,
-        age,
-        mean_elisa,
-        mean_nfl,
-        mean_ykl,
-        mean_gfap,
-        mean_tdp,
-        mean_ab42_ab40_ratio,
-        mean_ptau181,
-        mean_ptau217,
-        female
-      )
-  }
-
-  return(roc_df)
-}
-
 ## combined roc curve
 
 get_combined_roc <- function(roc_results) {
@@ -239,257 +156,93 @@ subtypes_vs_control <- function(roc_results) {
   )
 }
 
-get_marker_plots <- function(cohort, outcome) {
-  markers <- c(
-    "CD14",
-    "NfL",
-    "YKL-40",
-    "GFAP",
-    "AB42/AB40 Ratio",
-    "AB40",
-    "AB42",
-    "TDP-43",
-    "pTau-181",
-    "pTau-217"
-  )
-  bind_rows(lapply(
-    markers,
-    function(marker) {
-      get_marker_plot(
-        cohort = cohort,
-        outcome = outcome,
-        predictor = marker
+## Descriptives
+show_descriptives <- function(df) {
+  # density plot
+  density_plot <- df |>
+    filter(!Diagnosis_combined == "Control") |>
+    # remove large ab42/ab40 ratio outlier
+    mutate(
+      mean_ab42_ab40_ratio = ifelse(
+        mean_ab42_ab40_ratio > 0.5,
+        NA,
+        mean_ab42_ab40_ratio
+      ),
+      mean_ab40 = ifelse(mean_ab40 > 500, NA, mean_ab40),
+      mean_ab42 = ifelse(mean_ab42 > 20, NA, mean_ab42)
+    ) |>
+    select(Diagnosis_combined, starts_with("mean_")) |>
+    mutate(across(c("mean_ykl", "mean_tdp", "mean_nfl"), log)) |>
+    pivot_longer(
+      -Diagnosis_combined,
+      names_to = "biomarker",
+      names_prefix = "mean_"
+    ) |>
+    mutate(
+      biomarker = fct_recode(
+        biomarker,
+        "AB40" = "ab40",
+        "AB42" = "ab42",
+        "GFAP" = "gfap",
+        "log(NfL)" = "nfl",
+        "pTau181" = "ptau181",
+        "pTau217" = "ptau217",
+        "log(TDP-43)" = "tdp",
+        "log(YKL-40)" = "ykl",
+        "AB42/AB40" = "ab42_ab40_ratio"
       )
-    }
-  ))
-}
-
-get_marker_plot <- function(cohort, predictor, outcome) {
-  cohort_name <- names(cohort)
-  df <- cohort[[cohort_name]]
-
-  rename_map <- c(
-    "CD14" = "mean_elisa",
-    "NfL" = "mean_nfl",
-    "YKL-40" = "mean_ykl",
-    "GFAP" = "mean_gfap",
-    "AB42/AB40 Ratio" = "mean_ab42_ab40_ratio",
-    "AB40" = "mean_ab40",
-    "AB42" = "mean_ab42",
-    "TDP-43" = "mean_tdp",
-    "pTau-181" = "mean_ptau181",
-    "pTau-217" = "mean_ptau217",
-    "CSF AB Ratio" = "CSF_AB_Ratio",
-    "CDR" = "cdr",
-    "PET Z-Score" = "zscore",
-    "PET Centiloid" = "centiloid",
-    "PET Raw SUVR" = "raw_suvr"
-  )
-  existing <- unlist(rename_map)[unlist(rename_map) %in% names(df)]
-  df <- df |> rename(!!!existing)
-
-  tibble(
-    cohort = cohort_name,
-    predictor = predictor,
-    plot = list(
-      df |>
-        filter(!is.na(.data[[predictor]]) & !is.na(.data[[outcome]])) |>
-        ggplot(aes(
-          x = .data[[predictor]],
-          y = .data[[outcome]],
-          color = Diagnosis_combined
-        )) +
-        geom_point() +
-        geom_smooth(method = "lm", se = FALSE) +
-        labs(color = "Diagnosis") +
-        xlab(predictor) +
-        ggtitle(paste0(predictor, " vs ", outcome))
+    ) |>
+    ggplot(aes(x = value, fill = Diagnosis_combined)) +
+    geom_density(alpha = 0.7, size = 0.3) +
+    facet_wrap(~biomarker, scales = "free", ncol = 3) +
+    labs(
+      x = "Biomarker concentration",
+      y = "Density",
+      fill = "Diagnosis"
+    ) +
+    scale_fill_viridis_d(option = "plasma", begin = 0.1, end = 0.9) +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom",
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.text = element_text(size = 10),
+      axis.title = element_text(size = 12, face = "bold"),
+      axis.text = element_text(size = 10),
+      strip.text = element_text(size = 11, face = "bold"),
+      strip.background = element_rect(fill = "grey95", color = "grey80"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "grey95", size = 0.3),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.spacing = unit(0.5, "cm")
     )
-  )
-}
 
-## VIMP overall
+  ## Reliability
 
-vimp_overall <- function(df) {
-  vimp_data <- df |>
-    filter(Diagnosis_combined != "Control") |>
-    select(
-      Diagnosis_combined,
-      age,
-      mean_elisa,
-      mean_nfl,
-      mean_ykl,
-      mean_gfap,
-      mean_ab40,
-      mean_ab42,
-      mean_tdp,
-      mean_ptau181,
-      mean_ptau217
-    ) |>
-    drop_na()
-
-  vimp_full <- lapply(
-    dem_names,
-    function(outcome) {
-      vimp_function_par(
-        data = vimp_data,
-        outcome_subtype = outcome
-      )$mat |>
-        select(c(s, est, test))
-    }
-  ) |>
-    setNames(dem_names)
-
-  preds <- vimp_data |>
-    select(-Diagnosis_combined) |>
-    names()
-
-  tables <- list()
-
-  for (dem_name in dem_names) {
-    tables[[dem_name]] <- kable(
-      cbind(
-        preds[as.numeric(vimp_full[[dem_name]]$s)],
-        vimp_full[[dem_name]]$est,
-        vimp_full[[dem_name]]$test
-      ) |>
-        as_tibble() |>
-        setNames(c(
-          "var_name",
-          "imp",
-          "test"
-        )) |>
-        mutate(imp = round(as.numeric(imp), 3)) |>
-        mutate(
-          imp = paste0(imp, ifelse(test, "*", ""))
-        ) |>
-        select(-test) |>
-        mutate(
-          var_name = case_when(
-            var_name == "mean_elisa" ~ "CD14",
-            var_name == "mean_nfl" ~ "NfL",
-            var_name == "mean_ykl" ~ "YKL-40",
-            var_name == "mean_gfap" ~ "GFAP",
-            var_name == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-            var_name == "mean_ab40" ~ "AB40",
-            var_name == "mean_ab42" ~ "AB42",
-            var_name == "mean_tdp" ~ "TDP-43",
-            var_name == "mean_ptau181" ~ "pTau-181",
-            var_name == "mean_ptau217" ~ "pTau-217",
-            TRUE ~ var_name
-          )
-        ),
-      col.names = c("Predictor", "Importance"),
-      caption = paste0(
-        "VImp for ",
-        dem_name,
-        " vs Other Dem",
-        " (n = ",
-        nrow(filter(vimp_data, Diagnosis_combined == dem_name)),
-        ")"
+  reliability <- df |>
+    select(Diagnosis_combined, ends_with("_ICC")) |>
+    pivot_longer(-Diagnosis_combined, names_to = "biomarker") |>
+    filter(!biomarker == "elisa_ICC") |>
+    mutate(
+      biomarker = fct_recode(
+        biomarker,
+        "AB40" = "ab40_ICC",
+        "GFAP" = "gfap_ICC",
+        "NfL" = "nfl_ICC",
+        "pTau181" = "ptau181_ICC",
+        "pTau217" = "ptau217_ICC",
+        "TDP-43" = "tdp_ICC",
+        "YKL-40" = "ykl_ICC"
       )
-    )
-  }
-
-  tables
-}
-
-## VIMP by sex
-
-vimp_by_sex <- function(df, stratification) {
-  vimp_data <- df |>
-    filter(
-      female == ifelse(stratification == "female", 1, 0) &
-        Diagnosis_combined != "Control"
     ) |>
-    select(
-      Diagnosis_combined,
-      age,
-      mean_elisa,
-      mean_nfl,
-      mean_ykl,
-      mean_gfap,
-      mean_ab40,
-      mean_ab42,
-      mean_tdp,
-      mean_ptau181,
-      mean_ptau217
-    ) |>
-    drop_na()
+    mutate(value = round(value, 3)) |>
+    group_by(biomarker) |>
+    summarise(ICC = mean(value, na.rm = TRUE)) |>
+    knitr::kable()
 
-  vimp <- lapply(
-    dem_names,
-    function(outcome) {
-      vimp_function_par(
-        data = vimp_data,
-        outcome_subtype = outcome,
-        stratification = stratification
-      )$mat |>
-        select(c(s, est, test))
-    }
-  ) |>
-    setNames(dem_names)
+  ## Demo table
 
-  preds <- vimp_data |>
-    select(-Diagnosis_combined) |>
-    names()
+  dt <- setDT(df)
 
-  tables <- list()
-
-  for (dem_name in dem_names) {
-    tables[[dem_name]] <-
-      kable(
-        cbind(
-          preds[as.numeric(vimp[[dem_name]]$s)],
-          vimp[[dem_name]]$est,
-          vimp[[dem_name]]$test
-        ) |>
-          as_tibble() |>
-          setNames(c(
-            "var_name",
-            "imp",
-            "test"
-          )) |>
-          mutate(imp = round(as.numeric(imp), 3)) |>
-          mutate(
-            imp = paste0(imp, ifelse(test, "*", ""))
-          ) |>
-          select(-test) |>
-          mutate(
-            var_name = case_when(
-              var_name == "mean_elisa" ~ "CD14",
-              var_name == "mean_nfl" ~ "NfL",
-              var_name == "mean_ykl" ~ "YKL-40",
-              var_name == "mean_gfap" ~ "GFAP",
-              var_name == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-              var_name == "mean_ab40" ~ "AB40",
-              var_name == "mean_ab42" ~ "AB42",
-              var_name == "mean_tdp" ~ "TDP-43",
-              var_name == "mean_ptau181" ~ "pTau-181",
-              var_name == "mean_ptau217" ~ "pTau-217",
-              TRUE ~ var_name
-            )
-          ),
-        col.names = c("Predictor", "Importance"),
-        caption = paste0(
-          "VImp for ",
-          dem_name,
-          ifelse(
-            stratification == "female",
-            " vs Other Dem in Females",
-            " vs Other Dem in Males"
-          ),
-          " (n = ",
-          nrow(filter(vimp_data, Diagnosis_combined == dem_name)),
-          ")"
-        )
-      )
-  }
-
-  tables
-}
-
-demos <- function(dt) {
   dt[,
     race_combined := ifelse(
       race_combined == "American Indian/Alaska Native",
@@ -497,7 +250,7 @@ demos <- function(dt) {
       race_combined
     )
   ]
-  dt[, .(
+  demos <- dt[, .(
     Diagnosis_combined,
     Site,
     age,
@@ -519,4 +272,10 @@ demos <- function(dt) {
       by = Diagnosis_combined,
       missing = "ifany"
     )
+
+  return(list(
+    density_plot = density_plot,
+    reliability = reliability,
+    demos = demos
+  ))
 }

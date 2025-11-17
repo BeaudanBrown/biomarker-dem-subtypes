@@ -114,24 +114,12 @@ cat(make_nested_tabs(mmse_plots))
 tar_read(cdr_corr_table)
 tar_load(cdr_plots)
 ```
-
-```{r}
-#| results: asis
-#| echo: false
-cat(make_nested_tabs(cdr_plots))
-```
 :::
 
 ## Biomarker and CSF correlations
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(csf_corr_table)
-tar_load(csf_plots)
-```
-```{r}
-#| results: asis
-#| echo: false
-cat(make_nested_tabs(csf_plots))
 ```
 :::
 
@@ -139,12 +127,6 @@ cat(make_nested_tabs(csf_plots))
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(pet_zscore_corr_table)
-tar_load(pet_zscore_plots)
-```
-```{r}
-#| results: asis
-#| echo: false
-cat(make_nested_tabs(pet_zscore_plots))
 ```
 :::
 
@@ -152,12 +134,6 @@ cat(make_nested_tabs(pet_zscore_plots))
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(pet_centiloid_corr_table)
-tar_load(pet_centiloid_plots)
-```
-```{r}
-#| results: asis
-#| echo: false
-cat(make_nested_tabs(pet_centiloid_plots))
 ```
 :::
 
@@ -165,51 +141,7 @@ cat(make_nested_tabs(pet_centiloid_plots))
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
 tar_read(pet_raw_suvr_corr_table)
-tar_load(pet_raw_suvr_plots)
 ```
-```{r}
-#| results: asis
-#| echo: false
-cat(make_nested_tabs(pet_raw_suvr_plots))
-```
-:::
-
-## Variable importance
-::: {.my-table-wrapper style="width:60%; margin:auto;"}
-#### * indicates p < 0.05
-```{r}
-#| results: asis
-vimp <- tar_read(vimp_full)
-vimp[[1]]
-vimp[[2]]
-vimp[[3]]
-```
-:::
-
-## Variable importance by sex
-::: {.my-table-wrapper style="width:60%; margin:auto;"}
-#### * indicates p < 0.05
-:::: {.columns}
-::: {.column width="50%" padding="10%"}
-```{r}
-#| results: asis
-vimp_f <- tar_read(vimp_females)
-vimp_f[[1]]
-vimp_f[[2]]
-vimp_f[[3]]
-```
-:::
-
-::: {.column width="50%"}
-```{r}
-#| results: asis
-vimp_m <- tar_read(vimp_males)
-vimp_m[[1]]
-vimp_m[[2]]
-vimp_m[[3]]
-```
-:::
-::::
 :::
 
 ```{r}
