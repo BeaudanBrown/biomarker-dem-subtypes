@@ -147,7 +147,7 @@ prepare_data <- function(sheet_name, marker_name) {
   df
 }
 
-prepare_roc_data <- function(df, with_fasting = "no") {
+prepare_roc_data <- function(df, with_fasting = "no", apoe_ratio = "no") {
   if (with_fasting == "yes") {
     setDT(df)
 
@@ -182,7 +182,26 @@ prepare_roc_data <- function(df, with_fasting = "no") {
         mean_nfl,
         mean_ykl,
         mean_gfap,
+        mean_ab42,
+        mean_ab40,
+        mean_tdp,
+        mean_ptau181,
+        mean_ptau217,
+        female,
+        fasting_combined
+      )
+  } else if (apoe_ratio == "yes") {
+    roc_df <-
+      df |>
+      select(
+        Diagnosis_combined,
+        age,
+        mean_elisa,
+        mean_nfl,
+        mean_ykl,
+        mean_gfap,
         mean_ab42_ab40_ratio,
+        ab40_ratio,
         mean_tdp,
         mean_ptau181,
         mean_ptau217,
@@ -219,7 +238,8 @@ prepare_roc_data_cdr <- function(df) {
       mean_nfl,
       mean_ykl,
       mean_gfap,
-      mean_ab42_ab40_ratio,
+      mean_ab42,
+      mean_ab40,
       mean_tdp,
       mean_ptau181,
       mean_ptau217,

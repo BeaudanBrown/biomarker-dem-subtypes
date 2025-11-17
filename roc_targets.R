@@ -46,6 +46,10 @@ roc_defs <- bind_rows(
 roc_targets <- list(
   tar_target(roc_data_prepared, prepare_roc_data(df_with_csf)),
   tar_target(
+    roc_data_prepared_ratio,
+    prepare_roc_data(df_with_csf, apoe_ratio = "yes")
+  ),
+  tar_target(
     roc_data_prepared_fasting,
     prepare_roc_data(df, with_fasting = "yes")
   ),
@@ -157,6 +161,40 @@ roc_targets <- list(
     )
   ),
   tar_target(combined_roc_fasting, get_combined_roc(roc_results_fasting)),
+
+  # ===================================================================
+  # Using AB42 to 40 Ratio
+  # ===================================================================
+
+  tar_map(
+    values = roc_defs,
+    names = comparison,
+    tar_target(
+      roc_result_ratio,
+      auroc(roc_data_prepared_ratio, target_diagnosis, comparators)
+    ),
+    tar_target(
+      roc_plot_ratio,
+      plot_roc(roc_result_ratio, title)
+    ),
+    tar_target(
+      roc_merged_ratio,
+      list(roc_result = roc_result_ratio, roc_plot = roc_plot_ratio)
+    )
+  ),
+  tar_target(
+    roc_results_ratio,
+    list(
+      AD_vs_Control = roc_merged_ratio_AD_vs_Control,
+      FTD_vs_Control = roc_merged_ratio_FTD_vs_Control,
+      LBD_vs_Control = roc_merged_ratio_LBD_vs_Control,
+      LBD_vs_FTD = roc_merged_ratio_LBD_vs_FTD,
+      AD_vs_Others = roc_merged_ratio_AD_vs_Others,
+      LBD_vs_Others = roc_merged_ratio_LBD_vs_Others,
+      FTD_vs_Others = roc_merged_ratio_FTD_vs_Others
+    )
+  ),
+  tar_target(combined_roc_ratio, get_combined_roc(roc_results_ratio)),
 
   # ===================================================================
   # By Sex
