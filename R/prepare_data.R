@@ -201,12 +201,10 @@ prepare_roc_data <- function(df, with_fasting = "no", apoe_ratio = "no") {
         mean_ykl,
         mean_gfap,
         mean_ab42_ab40_ratio,
-        ab40_ratio,
         mean_tdp,
         mean_ptau181,
         mean_ptau217,
-        female,
-        fasting_combined
+        female
       )
   } else {
     roc_df <-
