@@ -7,6 +7,7 @@ archive/
 logs/
 .targets_beau/
 to do
+.Rprofile
 
 # History files
 .Rlib

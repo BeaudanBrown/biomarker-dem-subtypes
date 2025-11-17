@@ -116,6 +116,9 @@ get_marker_table <- function(corr_data) {
   top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
 
   df_wide |>
+    mutate(across(-predictor, \(.) as.numeric(.))) |>
+    mutate(across(-predictor, \(.) sprintf("%.2f", .))) |>
+    mutate(across(ends_with("_p"), \(.) ifelse(. < 0.001, "<0.001", .))) |>
     kableExtra::kable(
       format = "html",
       booktabs = TRUE,

@@ -11,11 +11,6 @@ list(
     mmse_corr_table,
     get_marker_table(mmse_corrs)
   ),
-  tar_target(
-    mmse_plots,
-    get_marker_plots(all_cohorts, outcome = "MMSE"),
-    pattern = map(all_cohorts)
-  ),
 
   # ===================================================================
   # CDR
@@ -28,10 +23,5 @@ list(
   tar_target(
     cdr_corr_table,
     get_marker_table(cdr_corrs)
-  ),
-  tar_target(
-    cdr_plots,
-    get_marker_plots(all_cohorts, outcome = "CDR"),
-    pattern = map(all_cohorts)
   )
 )
