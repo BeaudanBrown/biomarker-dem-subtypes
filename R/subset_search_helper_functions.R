@@ -1,12 +1,10 @@
 ## Function for cross-validated biomarker subset identification
 
-get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
+get_fold_stats <- function(data, outcome, reference, nfolds = 10, stuff) {
   # filter to outcome and reference
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
   data <- drop_na(data)
-
-  set.seed(Sys.getenv("SEED"))
 
   Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
 
@@ -44,14 +42,12 @@ get_fold_stats <- function(data, outcome, reference, nfolds = 5, stuff) {
   }
 }
 
-get_biomarker_subset <- function(data, outcome, reference, nfolds = 5) {
+get_biomarker_subset <- function(data, outcome, reference, nfolds = 10) {
   # filter to outcome and reference
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ]
 
   data <- drop_na(data)
-
-  set.seed(Sys.getenv("SEED"))
 
   Y <- ifelse(data$Diagnosis_combined == outcome, 1, 0)
 

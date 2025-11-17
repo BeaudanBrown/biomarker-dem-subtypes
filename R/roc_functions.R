@@ -123,7 +123,7 @@ calculate_tpr_fpr <- function(threshold, data) {
 }
 
 
-plot_roc <- function(roc_data, title_text, nfolds = 5) {
+plot_roc <- function(roc_data, title_text, nfolds = 10) {
   AUC <- mean(map_vec(roc_data$aucs$results, function(a) mean(a$AUC)))
   TPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$TPR)) / nfolds
   FPR <- Reduce(`+`, lapply(roc_data$aucs$results, function(a) a$FPR)) / nfolds
@@ -163,7 +163,7 @@ plot_roc <- function(roc_data, title_text, nfolds = 5) {
 }
 
 
-plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 5) {
+plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 10) {
   # A helper function to extract the summary results from a single ROC
   extract_results <- function(roc_data) {
     AUC <- mean(map_vec(roc_data$aucs$results, function(a) mean(a$AUC)))
