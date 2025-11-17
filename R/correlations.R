@@ -15,6 +15,7 @@ standardise_df <- function(df) {
       mean_ab40 = standardise(ifelse(mean_ab40 > 500, NA, mean_ab40)),
       mean_ab42 = standardise(ifelse(mean_ab42 > 20, NA, mean_ab42)),
       mean_ykl = standardise(log(mean_ykl)),
+      mean_nfl = standardise(mean_nfl),
       mean_ptau181 = standardise(mean_ptau181),
       mean_tdp = standardise(log(mean_tdp)),
       mean_ptau217 = standardise(mean_ptau217),
