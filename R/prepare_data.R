@@ -146,3 +146,84 @@ prepare_data <- function(sheet_name, marker_name) {
   df$Sample_Barcode <- as.character(gsub("\\*", "", df$Sample_Barcode))
   df
 }
+
+prepare_roc_data <- function(df, with_fasting = "no") {
+  if (with_fasting == "yes") {
+    setDT(df)
+
+    df[,
+      fasting_combined := ifelse(
+        is.na(Fasting_Status),
+        Fasting_8_hours,
+        Fasting_Status
+      )
+    ][,
+      fasting_combined := ifelse(
+        fasting_combined == "Unknown" |
+          fasting_combined == "unknown",
+        NA,
+        fasting_combined
+      )
+    ][,
+      fasting_combined := ifelse(
+        fasting_combined == "non-fasted",
+        "No",
+        fasting_combined
+      )
+    ] |>
+      as_tibble()
+
+    roc_df <-
+      df |>
+      select(
+        Diagnosis_combined,
+        age,
+        mean_elisa,
+        mean_nfl,
+        mean_ykl,
+        mean_gfap,
+        mean_ab42_ab40_ratio,
+        mean_tdp,
+        mean_ptau181,
+        mean_ptau217,
+        female,
+        fasting_combined
+      )
+  } else {
+    roc_df <-
+      df |>
+      select(
+        Diagnosis_combined,
+        age,
+        mean_elisa,
+        mean_nfl,
+        mean_ykl,
+        mean_gfap,
+        mean_tdp,
+        mean_ab42_ab40_ratio,
+        mean_ptau181,
+        mean_ptau217,
+        female
+      )
+  }
+
+  roc_df
+}
+
+prepare_roc_data_cdr <- function(df) {
+  df |>
+    select(
+      Diagnosis_combined,
+      age,
+      mean_elisa,
+      mean_nfl,
+      mean_ykl,
+      mean_gfap,
+      mean_ab42_ab40_ratio,
+      mean_tdp,
+      mean_ptau181,
+      mean_ptau217,
+      female,
+      cdr
+    )
+}

@@ -28,29 +28,29 @@ merge_datafiles <- function(
       PA_ID = "PA ID",
       cdr = "CDR_at_Draw",
     ) |>
-    select(
+    dplyr::select(
       PA_ID,
       cdr
     ) |>
     mutate(cdr = as.numeric(cdr))
 
   # We merge this at the end because it uses a sample ID
-  nacc_cdr <- read.csv(nacc_file) |>
+  nacc_cdr <- read_csv(nacc_file) |>
     rename(
-      Sample_Barcode = "Biobank.ID",
-      cdr = "CDRGLOB",
+      Sample_Barcode = "Biobank ID",
+      cdr = "CDRGLOB"
     ) |>
     mutate(
       Sample_Barcode = as.character(Sample_Barcode),
-      cdr = as.numeric(cdr),
+      cdr = as.numeric(cdr)
     ) |>
-    select(
+    dplyr::select(
       Sample_Barcode,
-      cdr,
+      cdr
     )
 
   pheno <- full_join(pheno, wash_cdr, by = "PA_ID", suffix = c("_x", "")) |>
-    select(-cdr_x)
+    dplyr::select(-cdr_x)
 
   ### match index to PA_ID
 
@@ -576,7 +576,7 @@ merge_datafiles <- function(
 
   ### Add in cases
 
-  case <- case |> select(-DrawDate, -DOB, -sex)
+  case <- case |> dplyr::select(-DrawDate, -DOB, -sex)
 
   joined <- full_join(joined, case, by = "PA_ID")
 
@@ -587,7 +587,7 @@ merge_datafiles <- function(
 
   new_cases_update <-
     new_cases_update |>
-    select(-`Jan 21 2025 update`, -Notes)
+    dplyr::select(-`Jan 21 2025 update`, -Notes)
 
   setnames(
     new_cases,
@@ -658,7 +658,7 @@ merge_datafiles <- function(
       Biomarker != "Protein, Total",
       Biomarker != "Glucose",
     ) |>
-    select(
+    dplyr::select(
       Sample_Barcode,
       Biomarker,
       Result,
@@ -689,14 +689,14 @@ merge_datafiles <- function(
       mean_elisa = "Mean Concentration",
       cv_percent = "%CV",
     ) |>
-    select(Sample_Barcode, mean_elisa)
+    dplyr::select(Sample_Barcode, mean_elisa)
 
   new_cases <- full_join(new_cases, cd14, by = "Sample_Barcode")
 
   ### Join Texas and Washington data
 
   joined <- full_join(
-    joined |> select(-mean_elisa),
+    joined |> dplyr::select(-mean_elisa),
     new_cases,
     by = "Sample_Barcode"
   ) |>
@@ -743,7 +743,7 @@ add_extra_csf <- function(joined, addf_csf_file) {
         TRUE ~ Result
       )
     ) |>
-    select(
+    dplyr::select(
       Sample_Barcode,
       Biomarker,
       Result
@@ -777,7 +777,7 @@ add_extra_csf <- function(joined, addf_csf_file) {
     ) |>
     full_join(
       joined |>
-        select(-CSF_ab42, -CSF_total_tau, -CSF_ptau_181, -CSF_ptau_ab42),
+        dplyr::select(-CSF_ab42, -CSF_total_tau, -CSF_ptau_181, -CSF_ptau_ab42),
       by = "Sample_Barcode"
     ) |>
     mutate(
@@ -786,7 +786,7 @@ add_extra_csf <- function(joined, addf_csf_file) {
       LUMIPULSE_CSF_pTau = coalesce(LUMIPULSE_CSF_pTau, CSF_ptau_181)
     ) |>
     mutate(LUMIPULSE_CSF_pTau_AB42 = LUMIPULSE_CSF_pTau / LUMIPULSE_CSF_AB42) |>
-    select(
+    dplyr::select(
       -CSF_ab42,
       -CSF_total_tau,
       -CSF_ptau_181
