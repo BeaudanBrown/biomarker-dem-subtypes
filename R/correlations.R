@@ -36,22 +36,6 @@ standardise_df <- function(df) {
 
 get_adjusted_corr <- function(cohort, outcome, predictor) {
   format_estimate <- function(x) sprintf("%.3f", round(x, 3))
-  format_pval <- function(p) {
-    if (is.na(p)) {
-      return(NA)
-    }
-    if (p < 0.05) {
-      base <- "*"
-    } else {
-      base <- ""
-    }
-    if (p < 0.001) {
-      paste0(base, formatC(p, format = "e", digits = 2))
-    } else {
-      paste0(base, sprintf("%.3f", round(p, 3)))
-    }
-  }
-
   cohort_name <- names(cohort)
   df <- cohort[[cohort_name]]
   filtered_df <- df |>
@@ -73,7 +57,7 @@ get_adjusted_corr <- function(cohort, outcome, predictor) {
     outcome = outcome,
     predictor = predictor,
     estimate = format_estimate(coef_predictor),
-    p = format_pval(pval_predictor),
+    p = pval_predictor,
     n = nrow(filtered_df)
   )
 }

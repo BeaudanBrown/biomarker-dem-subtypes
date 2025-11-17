@@ -47,11 +47,11 @@ roc_targets <- list(
   tar_target(roc_data_prepared, prepare_roc_data(df_with_csf)),
   tar_target(
     roc_data_prepared_ratio,
-    prepare_roc_data(df_with_csf, apoe_ratio = "yes")
+    prepare_roc_data_ratio(df_with_csf)
   ),
   tar_target(
     roc_data_prepared_fasting,
-    prepare_roc_data(df, with_fasting = "yes")
+    prepare_roc_data_fasting(df)
   ),
   tar_target(
     roc_data_prepared_cdr,

@@ -17,9 +17,9 @@ plan(multicore)
 unlink("./logs/*", recursive = FALSE)
 crew_controller_global <- crew_controller_local(
   options_local = crew_options_local(log_directory = "./logs"),
-  workers = future::availableCores() - 1
+  workers = future::availableCores() - 1,
+  tar_option_set(error = "continue")
 )
-tar_option_set(error = "null")
 
 # Set target options:
 tar_option_set(
