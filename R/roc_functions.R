@@ -131,8 +131,7 @@ plot_roc <- function(roc_data, title_text, nfolds = 10) {
     TPR = TPR,
     FPR = FPR
   ) |>
-    mutate(comparison = paste0("LBD/PD vs FTD (AUC: ", round(AUC, 2), ")")) |>
-    ggplot(aes(x = FPR, y = TPR, colour = comparison)) +
+    ggplot(aes(x = FPR, y = TPR)) +
     geom_path(size = 1) +
     geom_abline(
       slope = 1,
@@ -226,10 +225,12 @@ plot_roc_combined <- function(roc_list, title_text, label_map, nfolds = 10) {
       colour = NULL
     ) +
     bayesplot::theme_default(base_size = 14) +
-    scale_color_colorblind() +
+    scale_color_viridis_d() +
     theme(
       legend.position = c(0.8, 0.45),
-      legend.text = element_text(size = 14)
+      legend.text = element_text(size = 14),
+      legend.spacing.y = unit(1, "cm"),
+      legend.key.height = unit(1, "cm")
     ) +
     guides(colour = guide_legend(nrow = 3))
 

@@ -16,14 +16,14 @@ get_combined_roc <- function(roc_results) {
   )
 
   outcome_label_map <- c(
-    "AD" = "AD vs others (AUC: %s)",
-    "FTD" = "FTD vs others (AUC: %s)",
-    "LBD" = "LBD/PD vs others (AUC: %s)"
+    "AD" = "AD vs other subtypes (AUC: %s)",
+    "FTD" = "FTD vs other subtypes (AUC: %s)",
+    "LBD" = "LBD/PD vs other subtypes (AUC: %s)"
   )
 
   plot_roc_combined(
     roc_list = roc_combined,
-    title_text = "ROC curves for dementia subtypes",
+    title_text = "",
     label_map = outcome_label_map
   )
 }
@@ -67,8 +67,8 @@ rocs_by_sex <- function(df, sex_roc_results) {
     )
 
   sex_label_map <- c(
-    "MEN" = "Men (AUC: %s)",
-    "WOMEN" = "Women (AUC: %s)"
+    "MEN" = "Males (AUC: %s)",
+    "WOMEN" = "Females (AUC: %s)"
   )
 
   #### AD ####
@@ -129,11 +129,13 @@ rocs_by_sex <- function(df, sex_roc_results) {
 }
 
 combine_sex_roc_plots <- function(sex_specific_plots) {
-  ad <- sex_specific_plots[["ad_plot"]] + ggtitle("AD Vs Other Dementias")
-  lbd <- sex_specific_plots[["lbd_plot"]] +
-    ggtitle("LBD/PD Vs Other Dementias")
-  ftd <- sex_specific_plots[["ftd_plot"]] + ggtitle("FTD Vs Other Dementias")
-  ad / lbd / ftd
+  ad <- sex_specific_plots[["ad_plot"]] + ggtitle("AD vs. other subtypes")
+  lbd <- sex_specific_plots[["lbd_plot"]] + ggtitle("LBD/PD vs. other subtypes")
+  ftd <- sex_specific_plots[["ftd_plot"]] + ggtitle("FTD vs. other subtypes")
+  wrap_plots(
+    list(ad + labs(y = "", x = ""), lbd + labs(x = ""), ftd + labs(y = "")),
+    ncol = 1
+  )
 }
 
 ## Dementia subtypes vs control
@@ -151,7 +153,7 @@ subtypes_vs_control <- function(roc_results) {
   )
   plot_roc_combined(
     roc_list = roc_combined,
-    title_text = "ROC curves for dementia subtypes",
+    title_text = "",
     label_map = outcome_label_map
   )
 }

@@ -51,7 +51,7 @@ plot_auc_steps <- function(
     geom_line(linewidth = 1, color = "steelblue") +
     geom_pointrange(aes(ymin = cil, ymax = ciu), color = "darkblue") +
     labs(
-      title = paste0(outcome, " Marker Path", extra_title),
+      title = "",
       x = "Markers Remaining",
       y = "AUC"
     ) +
@@ -105,7 +105,7 @@ combine_subset_plots <- function(plots) {
       axis.text.x = element_text(size = 9)
     )
   plot <- ad + lbd + ftd + plot_layout(ncol = 1, guides = "auto")
-  ggsave("plots/Figure_2.png", plot, device = "png", width = 8, height = 12)
+  ggsave("plots/Figure-2.png", plot, device = "png", width = 8, height = 12)
   plot
 }
 
