@@ -179,19 +179,30 @@ show_descriptives <- function(df) {
       names_prefix = "mean_"
     ) |>
     mutate(
-      biomarker = fct_recode(
-        biomarker,
-        "AB40" = "ab40",
-        "AB42" = "ab42",
-        "GFAP" = "gfap",
-        "log(NfL)" = "nfl",
-        "pTau181" = "ptau181",
-        "pTau217" = "ptau217",
-        "log(TDP-43)" = "tdp",
-        "log(YKL-40)" = "ykl",
-        "AB42/AB40" = "ab42_ab40_ratio"
+      Diagnosis_combined = fct_recode(
+        Diagnosis_combined,
+        "AD" = "Alzheimer's",
+        "LBD/PD" = "Lewy bodies",
+        "FTD" = "Frontotermporal"
       )
     ) |>
+    mutate(
+      biomarker = fct_recode(
+        biomarker,
+        "AB40 (pg/mL)" = "ab40",
+        "AB42 (pg/mL)" = "ab42",
+        "GFAP (pg/mL)" = "gfap",
+        "log(NfL)" = "nfl",
+        "pTau181 (pg/mL)" = "ptau181",
+        "pTau217 (pg/mL)" = "ptau217",
+        "log(TDP-43)" = "tdp",
+        "log(YKL-40)" = "ykl",
+        "AB42/AB40" = "ab42_ab40_ratio",
+        "CD14 (ng/mL)" = "elisa"
+      )
+    ) |>
+    # rescale CD14
+    mutate(value = ifelse(biomarker == "CD14 (ng/mL)", value / 1000, value)) |>
     ggplot(aes(x = value, fill = Diagnosis_combined)) +
     geom_density(alpha = 0.7, size = 0.3) +
     facet_wrap(~biomarker, scales = "free", ncol = 3) +
@@ -250,13 +261,22 @@ show_descriptives <- function(df) {
       race_combined
     )
   ]
+
+  dt[,
+    APOE_e4 := ifelse(
+      is.na(APOE),
+      NA_integer_,
+      as.integer(grepl("4", as.character(APOE)))
+    )
+  ]
+
   demos <- dt[, .(
     Diagnosis_combined,
     Site,
     age,
     female,
     race_combined,
-    APOE,
+    APOE_e4,
     mean_ptau181,
     mean_nfl,
     mean_ab40,
