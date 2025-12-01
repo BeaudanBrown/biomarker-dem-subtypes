@@ -31,6 +31,11 @@ subset_targets <- list(
     )
   ),
   tar_target(subset_plot_combined, combine_subset_plots(subset_plots_full)),
+  tar_target(subset_plot_men_combined, combine_subset_plots(subset_plots_men)),
+  tar_target(
+    subset_plot_women_combined,
+    combine_subset_plots(subset_plots_women)
+  ),
   tar_map(
     values = subset_comparisons,
     names = comparison,
