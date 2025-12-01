@@ -87,8 +87,8 @@ combine_subset_plots <- function(plots) {
       axis.text.y = element_text(size = 9),
       axis.text.x = element_text(size = 9)
     )
-  lbd <- plots$lbd +
-    ggtitle("C. FTD Vs Other Dementias") +
+  ftd <- plots$ftd +
+    ggtitle("B. LBD/PD Vs Other Dementias") +
     labs(x = "") +
     theme(
       plot.title = element_text(size = 10, face = "bold"),
@@ -96,16 +96,17 @@ combine_subset_plots <- function(plots) {
       axis.text.y = element_text(size = 9),
       axis.text.x = element_text(size = 9)
     )
-  ftd <- plots$ftd +
-    ggtitle("B. LBD/PD Vs Other Dementias") +
+  lbd <- plots$lbd +
+    ggtitle("C. FTD Vs Other Dementias") +
+    labs(x = "Retained predictors") +
     theme(
       plot.title = element_text(size = 10, face = "bold"),
       axis.title = element_text(size = 10),
       axis.text.y = element_text(size = 9),
       axis.text.x = element_text(size = 9)
     )
-  plot <- ad + lbd + ftd + plot_layout(ncol = 1, guides = "auto")
-  ggsave("plots/Figure-2.png", plot, device = "png", width = 8, height = 12)
+  plot <- ad + ftd + lbd + plot_layout(ncol = 1, guides = "auto")
+  ggsave("plots/Figure-2.png", plot, device = "png", width = 10, height = 12)
   plot
 }
 

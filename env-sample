@@ -1,8 +1,6 @@
 DATA_DIR=/s/Epi-Dementia/Pase-ED/Studies/ADDF/Data and Results/
 CACHE_DIR=/s/Epi-Dementia/Pase-ED/Studies/ADDF/Data and Results/.targets_beau/
 
-SEED=1234
-
 NACC_FILE=DATA FOR BEAU/ADDF NACC data 20May25_deidentified.csv
 
 ADDF_CSF_FILE=Data from texas downloaded April 1 2025/ADDF CSF biomarker data.xlsx

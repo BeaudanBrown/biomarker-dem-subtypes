@@ -11,13 +11,11 @@ cache_dir <- Sys.getenv("CACHE_DIR")
 # set target configs
 tar_config_set(store = cache_dir)
 
-plan(multicore)
-
 # Set up global crew controller
 unlink("./logs/*", recursive = FALSE)
 crew_controller_global <- crew_controller_local(
   options_local = crew_options_local(log_directory = "./logs"),
-  workers = future::availableCores() - 1,
+  workers = future::availableCores() - 2,
   tar_option_set(error = "continue")
 )
 
