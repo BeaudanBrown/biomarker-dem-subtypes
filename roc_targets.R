@@ -18,12 +18,6 @@ roc_defs <- bind_rows(
     title = "Lewy bodies vs control"
   ),
   list(
-    comparison = "LBD_vs_FTD",
-    target_diagnosis = "Lewy bodies",
-    comparators = list(c("Frontotermporal")),
-    title = "Lewy bodies vs frontotemporal"
-  ),
-  list(
     comparison = "AD_vs_Others",
     target_diagnosis = "Alzheimer's",
     comparators = list(c("Frontotermporal", "Lewy bodies")),
@@ -83,7 +77,6 @@ roc_targets <- list(
       AD_vs_Control = roc_merged_AD_vs_Control,
       FTD_vs_Control = roc_merged_FTD_vs_Control,
       LBD_vs_Control = roc_merged_LBD_vs_Control,
-      LBD_vs_FTD = roc_merged_LBD_vs_FTD,
       AD_vs_Others = roc_merged_AD_vs_Others,
       LBD_vs_Others = roc_merged_LBD_vs_Others,
       FTD_vs_Others = roc_merged_FTD_vs_Others
@@ -121,7 +114,6 @@ roc_targets <- list(
       AD_vs_Control = roc_cdr_merged_AD_vs_Control,
       FTD_vs_Control = roc_cdr_merged_FTD_vs_Control,
       LBD_vs_Control = roc_cdr_merged_LBD_vs_Control,
-      LBD_vs_FTD = roc_cdr_merged_LBD_vs_FTD,
       AD_vs_Others = roc_cdr_merged_AD_vs_Others,
       LBD_vs_Others = roc_cdr_merged_LBD_vs_Others,
       FTD_vs_Others = roc_cdr_merged_FTD_vs_Others
@@ -154,7 +146,6 @@ roc_targets <- list(
       AD_vs_Control = roc_fasting_merged_AD_vs_Control,
       FTD_vs_Control = roc_fasting_merged_FTD_vs_Control,
       LBD_vs_Control = roc_fasting_merged_LBD_vs_Control,
-      LBD_vs_FTD = roc_fasting_merged_LBD_vs_FTD,
       AD_vs_Others = roc_fasting_merged_AD_vs_Others,
       LBD_vs_Others = roc_fasting_merged_LBD_vs_Others,
       FTD_vs_Others = roc_fasting_merged_FTD_vs_Others
@@ -188,7 +179,6 @@ roc_targets <- list(
       AD_vs_Control = roc_merged_ratio_AD_vs_Control,
       FTD_vs_Control = roc_merged_ratio_FTD_vs_Control,
       LBD_vs_Control = roc_merged_ratio_LBD_vs_Control,
-      LBD_vs_FTD = roc_merged_ratio_LBD_vs_FTD,
       AD_vs_Others = roc_merged_ratio_AD_vs_Others,
       LBD_vs_Others = roc_merged_ratio_LBD_vs_Others,
       FTD_vs_Others = roc_merged_ratio_FTD_vs_Others
@@ -226,7 +216,6 @@ roc_targets <- list(
       AD_vs_Control = roc_men_merged_AD_vs_Control,
       FTD_vs_Control = roc_men_merged_FTD_vs_Control,
       LBD_vs_Control = roc_men_merged_LBD_vs_Control,
-      LBD_vs_FTD = roc_men_merged_LBD_vs_FTD,
       AD_vs_Others = roc_men_merged_AD_vs_Others,
       LBD_vs_Others = roc_men_merged_LBD_vs_Others,
       FTD_vs_Others = roc_men_merged_FTD_vs_Others
@@ -262,7 +251,6 @@ roc_targets <- list(
       AD_vs_Control = roc_women_merged_AD_vs_Control,
       FTD_vs_Control = roc_women_merged_FTD_vs_Control,
       LBD_vs_Control = roc_women_merged_LBD_vs_Control,
-      LBD_vs_FTD = roc_women_merged_LBD_vs_FTD,
       AD_vs_Others = roc_women_merged_AD_vs_Others,
       LBD_vs_Others = roc_women_merged_LBD_vs_Others,
       FTD_vs_Others = roc_women_merged_FTD_vs_Others

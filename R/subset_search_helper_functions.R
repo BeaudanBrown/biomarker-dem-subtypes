@@ -164,7 +164,7 @@ run_single_subset <- function(
 
   data <- data[data$Diagnosis_combined %in% c(outcome, reference), ] |>
     select(all_of(vars), starts_with("mean_")) |>
-    select(-mean_ab42, -mean_ab40) |>
+    select(-mean_ab42_ab40_ratio) |>
     drop_na()
 
   backwards_search(
@@ -338,26 +338,4 @@ get_ref_sub_AUC <- function(
     reference_auc = reference_auc,
     subset_auc = subset_auc
   ))
-}
-
-## Helper functions for parallel subset analysis
-
-prepare_subset_data <- function(data, sex_strat = "", use_cdr = FALSE) {
-  if (sex_strat != "") {
-    data <- data |>
-      filter(female == ifelse(sex_strat == "female", 1, 0)) |>
-      select(-female)
-    vars <- c("Diagnosis_combined", "age")
-  } else {
-    vars <- c("Diagnosis_combined", "age", "female")
-  }
-
-  if (use_cdr) {
-    vars <- append(vars, c("cdr"))
-  }
-
-  data |>
-    select(all_of(vars), starts_with("mean_")) |>
-    select(-mean_ab42_ab40_ratio) |>
-    drop_na()
 }

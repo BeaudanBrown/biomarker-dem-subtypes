@@ -27,8 +27,7 @@ subset_targets <- list(
     list(
       ad = subset_plot_full_AD_vs_Others,
       ftd = subset_plot_full_FTD_vs_Others,
-      lbd = subset_plot_full_LBD_vs_Others,
-      lbd_vs_ftd = subset_plot_full_LBD_vs_FTD
+      lbd = subset_plot_full_LBD_vs_Others
     )
   ),
   tar_target(subset_plot_combined, combine_subset_plots(subset_plots_full)),
