@@ -52,7 +52,7 @@ plot_auc_steps <- function(
     geom_pointrange(aes(ymin = cil, ymax = ciu), color = "darkblue") +
     labs(
       title = "",
-      x = "Markers Remaining",
+      x = "Predictors retained",
       y = "AUC"
     ) +
     theme_bw() +
@@ -89,7 +89,7 @@ combine_subset_plots <- function(plots) {
     )
   ftd <- plots$ftd +
     ggtitle("B. FTD Vs Other Dementias") +
-    labs(x = "Retained predictors") +
+    labs(x = "") +
     theme(
       plot.title = element_text(size = 10, face = "bold"),
       axis.title = element_text(size = 10),
@@ -98,7 +98,7 @@ combine_subset_plots <- function(plots) {
     )
   lbd <- plots$lbd +
     ggtitle("C. LBD/PD Vs Other Dementias") +
-    labs(x = "") +
+    labs(x = "Retained predictors") +
     theme(
       plot.title = element_text(size = 10, face = "bold"),
       axis.title = element_text(size = 10),

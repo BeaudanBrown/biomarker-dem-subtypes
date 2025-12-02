@@ -34,6 +34,12 @@ roc_defs <- bind_rows(
     target_diagnosis = "Frontotermporal",
     comparators = list(c("Lewy bodies", "Alzheimer's")),
     title = "Frontotemporal vs other dementias"
+  ),
+  list(
+    comparison = "LBD_vs_FTD",
+    target_diagnosis = "Lewy bodies",
+    comparators = list(c("Frontotermporal")),
+    title = "Lewy bodies vs frontotemporal"
   )
 )
 
@@ -79,7 +85,8 @@ roc_targets <- list(
       LBD_vs_Control = roc_merged_LBD_vs_Control,
       AD_vs_Others = roc_merged_AD_vs_Others,
       LBD_vs_Others = roc_merged_LBD_vs_Others,
-      FTD_vs_Others = roc_merged_FTD_vs_Others
+      FTD_vs_Others = roc_merged_FTD_vs_Others,
+      LBD_vs_FTD = roc_merged_LBD_vs_FTD
     )
   ),
   tar_target(combined_roc, get_combined_roc(roc_results)),
