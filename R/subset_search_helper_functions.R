@@ -1,75 +1,80 @@
+## Helper: Compute cross-validated AUC with confidence intervals
+compute_cv_auc_with_ci <- function(data, outcome, reference_group) {
+  auc_results <- auroc(data, outcome, reference_group)
+  preds <- lapply(auc_results$aucs$results, function(a) a$preds)
+  labels <- lapply(auc_results$aucs$results, function(a) a$labels)
+  ci.cvAUC(preds, labels)
+}
+
 ## Function for cross-validated biomarker subset identification
-run_single_subset <- function(
+find_minimal_biomarker_subset <- function(
   data,
   outcome,
-  reference,
-  sex_strat = "",
-  use_cdr = FALSE
+  reference_group,
+  stratify_by_sex = NULL,
+  adjust_for_cdr = FALSE
 ) {
-  if (sex_strat != "") {
+  if (!is.null(stratify_by_sex) && stratify_by_sex != "") {
+    sex_filter_value <- ifelse(stratify_by_sex == "female", 1, 0)
     data <- data |>
-      filter(female == ifelse(sex_strat == "female", 1, 0)) |>
+      filter(female == sex_filter_value) |>
       select(-female)
-    vars <- c("Diagnosis_combined", "age")
+    covariates <- c("Diagnosis_combined", "age")
   } else {
-    vars <- c("Diagnosis_combined", "age", "female")
-  }
-  if (use_cdr) {
-    vars <- append(vars, c("cdr"))
+    covariates <- c("Diagnosis_combined", "age", "female")
   }
 
-  data <- data[data$Diagnosis_combined %in% c(outcome, reference), ] |>
-    select(all_of(vars), starts_with("mean_")) |>
+  if (adjust_for_cdr) {
+    covariates <- append(covariates, c("cdr"))
+  }
+
+  data <- data[data$Diagnosis_combined %in% c(outcome, reference_group), ] |>
+    select(all_of(covariates), starts_with("mean_")) |>
     select(-mean_ab42_ab40_ratio) |>
     drop_na()
 
-  backwards_search(
+  backward_elimination_search(
     data,
     outcome = outcome,
-    reference = reference,
-    threshold = 1
+    reference_group = reference_group,
+    max_auc_drop = 1
   )
 }
 
 ## Backwards search for best minimal subset of biomarkers
+backward_elimination_search <- function(
+  data,
+  outcome,
+  reference_group,
+  max_auc_drop = 0.03
+) {
+  # Full model AUC
+  full_model_auc <- compute_cv_auc_with_ci(data, outcome, reference_group)
 
-backwards_search <- function(data, outcome, reference, threshold = 0.03) {
-  # reference (full model) AUC
-
-  auc_results <- auroc(data, outcome, reference)
-  preds <- lapply(auc_results$aucs$results, function(a) a$preds)
-  labels <- lapply(auc_results$aucs$results, function(a) a$labels)
-  reference_auc <- ci.cvAUC(preds, labels)
-
-  # start backwards search
-
-  total_preds <- data |>
+  # Start backward search
+  n_biomarkers <- data |>
     select(starts_with("mean")) |>
     names() |>
     length()
 
-  preds_removed <- 1
-  smallest_auc_drop <- 0
-  aucs <- list()
-  result <- list()
-  full_data <- data
+  n_removed <- 1
+  current_auc_drop <- 0
+  step_aucs <- list()
+  original_data <- data
 
-  while (preds_removed <= total_preds && smallest_auc_drop < threshold) {
-    indices <-
-      which(
-        !names(data) %in%
-          c("age", "female", "Diagnosis_combined", "cdr")
-      )
+  COVARIATE_COLUMNS <- c("age", "female", "Diagnosis_combined", "cdr")
 
-    get_submodel_auc <- function(i) {
-      trim <- select(data, -names(data)[i])
-      # auc <- mean(auroc(trim, outcome, reference)$AUC)
-      auc_results <- auroc(trim, outcome, reference)
-      preds <- lapply(auc_results$aucs$results, function(a) a$preds)
-      labels <- lapply(auc_results$aucs$results, function(a) a$labels)
-      auc <- ci.cvAUC(preds, labels)
+  while (n_removed <= n_biomarkers && current_auc_drop < max_auc_drop) {
+    biomarker_indices <- which(!names(data) %in% COVARIATE_COLUMNS)
+
+    compute_leave_one_out_auc <- function(i) {
+      reduced_data <- select(data, -names(data)[i])
+
+      auc <- compute_cv_auc_with_ci(reduced_data, outcome, reference_group)
+
       cil <- auc$ci[[1]]
       ciu <- auc$ci[[2]]
+
       return(tibble(
         removed_var = names(data)[i],
         auc = auc$cvAUC,
@@ -78,30 +83,28 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
       ))
     }
 
-    auc_out <- map(indices, get_submodel_auc)
+    iteration_results <- map(biomarker_indices, compute_leave_one_out_auc)
 
-    aucs[[preds_removed]] <- bind_rows(auc_out)
+    step_aucs[[n_removed]] <- bind_rows(iteration_results)
 
-    # variable to remove before next step
-    best_auc_var <- filter(aucs[[preds_removed]], auc == max(auc))
+    # Variable to remove before next step
+    best_removal_candidate <- filter(step_aucs[[n_removed]], auc == max(auc))
 
-    to_remove <- best_auc_var$removed_var
+    biomarker_to_remove <- best_removal_candidate$removed_var
 
-    data <- select(data, -all_of(to_remove))
+    data <- select(data, -all_of(biomarker_to_remove))
 
-    result[[preds_removed]] <- list(vars = colnames(data), auc = best_auc_var)
+    # Calculate drop relative to full model
+    current_auc_drop <- full_model_auc$cvAUC - best_removal_candidate$auc
 
-    smallest_auc_drop <- reference_auc$cvAUC - best_auc_var$auc
-
-    preds_removed <- preds_removed + 1
+    n_removed <- n_removed + 1
   }
 
-  # superlearner fit for full model
+  # SuperLearner fit for full model
+  X <- select(original_data, -Diagnosis_combined)
+  Y <- ifelse(original_data$Diagnosis_combined == outcome, 1, 0)
 
-  X <- select(full_data, -Diagnosis_combined)
-  Y <- ifelse(full_data$Diagnosis_combined == outcome, 1, 0)
-
-  reference_model <-
+  full_model_fit <-
     SuperLearner(
       Y = Y,
       X = X,
@@ -110,30 +113,33 @@ backwards_search <- function(data, outcome, reference, threshold = 0.03) {
       cvControl = list(V = 10, stratifyCV = TRUE)
     )
 
-  # superlearner fit for best subset model
+  # SuperLearner fit for best subset model
+  # The last element of step_aucs contains the biomarkers that were candidates for removal
+  # in the final iteration - these are the ones we keep (selected subset)
+  selected_biomarkers <- step_aucs[[length(step_aucs)]]$removed_var
 
-  best_biomarkers <- aucs[[length(aucs)]]$removed_var
-
-  covars <- data |>
+  covariates <- original_data |>
     select(-starts_with("mean"), -Diagnosis_combined) |>
     names()
-  X <- select(X, all_of(covars), all_of(best_biomarkers))
 
-  subset_model <-
+  X_subset <- select(X, all_of(covariates), all_of(selected_biomarkers))
+
+  subset_model_fit <-
     SuperLearner(
       Y = Y,
-      X = X,
+      X = X_subset,
       family = binomial(),
       SL.library = SL.library,
       cvControl = list(V = 10, stratifyCV = TRUE)
     )
 
-  # return full model superlearner, subset model superlearner, and best subset
+  # Return results
   return(list(
-    path = aucs,
-    reference_auc = reference_auc,
-    reference_model = reference_model,
-    subset_model = subset_model,
-    n = nrow(data[data$Diagnosis_combined == outcome, ])
+    elimination_path = step_aucs,
+    full_model_auc = full_model_auc,
+    full_model_fit = full_model_fit,
+    subset_model_fit = subset_model_fit,
+    selected_biomarkers = selected_biomarkers,
+    n = nrow(original_data[original_data$Diagnosis_combined == outcome, ])
   ))
 }

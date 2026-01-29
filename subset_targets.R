@@ -7,10 +7,10 @@ subset_targets <- list(
     names = comparison,
     tar_target(
       subset_result_full,
-      run_single_subset(
+      find_minimal_biomarker_subset(
         df,
         target_diagnosis,
-        comparators
+        reference_group = comparators
       )
     ),
     tar_target(
@@ -41,11 +41,11 @@ subset_targets <- list(
     names = comparison,
     tar_target(
       subset_result_men,
-      run_single_subset(
+      find_minimal_biomarker_subset(
         df,
         target_diagnosis,
-        comparators,
-        sex_strat = "male"
+        reference_group = comparators,
+        stratify_by_sex = "male"
       )
     ),
     tar_target(
@@ -75,11 +75,11 @@ subset_targets <- list(
     names = comparison,
     tar_target(
       subset_result_women,
-      run_single_subset(
+      find_minimal_biomarker_subset(
         df,
         target_diagnosis,
-        comparators,
-        sex_strat = "female"
+        reference_group = comparators,
+        stratify_by_sex = "female"
       )
     ),
     tar_target(
@@ -109,11 +109,11 @@ subset_targets <- list(
     names = comparison,
     tar_target(
       subset_result_cdr,
-      run_single_subset(
+      find_minimal_biomarker_subset(
         df,
         target_diagnosis,
-        comparators,
-        use_cdr = TRUE
+        reference_group = comparators,
+        adjust_for_cdr = TRUE
       )
     ),
     tar_target(

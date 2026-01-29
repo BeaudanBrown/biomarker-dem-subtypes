@@ -110,7 +110,7 @@ combine_subset_plots <- function(plots) {
 }
 
 build_path <- function(path_data) {
-  ref_auc <- path_data$reference_auc
+  ref_auc <- path_data$full_model_auc
   all_vars <- c(
     "mean_elisa",
     "mean_nfl",
@@ -137,7 +137,7 @@ build_path <- function(path_data) {
     }
   }
 
-  best_path <- map(path_data$path, function(options) {
+  best_path <- map(path_data$elimination_path, function(options) {
     options[which.max(options$auc), ]
   })
 
