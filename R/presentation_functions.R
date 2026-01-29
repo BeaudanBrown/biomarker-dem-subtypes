@@ -49,22 +49,7 @@ combine_subtype_control <- function(subtype_rocs, control_rocs) {
 ## ROCs by sex
 
 rocs_by_sex <- function(df, sex_roc_results) {
-  roc_df <-
-    df |>
-    select(
-      Diagnosis_combined,
-      age,
-      mean_elisa,
-      mean_nfl,
-      mean_ykl,
-      mean_gfap,
-      mean_ab40,
-      mean_ab42,
-      mean_tdp,
-      mean_ptau181,
-      mean_ptau217,
-      female
-    )
+  roc_df <- df |> select(all_of(BASE_ROC_COLUMNS))
 
   sex_label_map <- c(
     "MEN" = "Males (AUC: %s)",
@@ -189,18 +174,19 @@ show_descriptives <- function(df) {
       )
     ) |>
     mutate(
-      biomarker = fct_recode(
-        biomarker,
-        "AB40 (pg/mL)" = "ab40",
-        "AB42 (pg/mL)" = "ab42",
-        "GFAP (pg/mL)" = "gfap",
-        "log(NfL)" = "nfl",
-        "pTau181 (pg/mL)" = "ptau181",
-        "pTau217 (pg/mL)" = "ptau217",
-        "log(TDP-43)" = "tdp",
-        "log(YKL-40)" = "ykl",
-        "AB42/AB40" = "ab42_ab40_ratio",
-        "CD14 (ng/mL)" = "elisa"
+      biomarker = rename_biomarkers(biomarker),
+      # Add units where needed
+      biomarker = case_when(
+        biomarker == "NfL" ~ "log(NfL)",
+        biomarker == "TDP-43" ~ "log(TDP-43)",
+        biomarker == "YKL-40" ~ "log(YKL-40)",
+        biomarker == "CD14" ~ "CD14 (ng/mL)",
+        biomarker == "AB40" ~ "AB40 (pg/mL)",
+        biomarker == "AB42" ~ "AB42 (pg/mL)",
+        biomarker == "GFAP" ~ "GFAP (pg/mL)",
+        biomarker == "pTau-181" ~ "pTau181 (pg/mL)",
+        biomarker == "pTau-217" ~ "pTau217 (pg/mL)",
+        TRUE ~ biomarker
       )
     ) |>
     # rescale CD14

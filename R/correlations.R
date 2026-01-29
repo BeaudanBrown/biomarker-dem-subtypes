@@ -92,25 +92,7 @@ get_marker_table <- function(corr_data) {
     )
   )
   df_wide <- df_wide[, col_order] |>
-    mutate(
-      predictor = case_when(
-        predictor == "mean_elisa" ~ "CD14",
-        predictor == "mean_nfl" ~ "NfL",
-        predictor == "mean_ykl" ~ "YKL-40",
-        predictor == "mean_gfap" ~ "GFAP",
-        predictor == "mean_ab42_ab40_ratio" ~ "AB42/AB40 Ratio",
-        predictor == "mean_ab40" ~ "AB40",
-        predictor == "mean_ab42" ~ "AB42",
-        predictor == "mean_tdp" ~ "TDP-43",
-        predictor == "mean_ptau181" ~ "pTau-181",
-        predictor == "mean_ptau217" ~ "pTau-217",
-        predictor == "cdr" ~ "CDR",
-        predictor == "zscore" ~ "PET Z-Score",
-        predictor == "centiloid" ~ "PET Centiloid",
-        predictor == "raw_suvr" ~ "PET Raw SUVR",
-        TRUE ~ predictor
-      )
-    )
+    mutate(predictor = rename_biomarkers(predictor))
 
   bottom_header <- c("Predictor", rep(c("Beta", "P‐value"), times = nc))
   top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
@@ -220,26 +202,4 @@ csf_rank_corr <- function(df, diagnosis = NULL) {
     )
 
   return(out)
-}
-
-get_pet_corrs <- function(cohort) {
-  measures <- c(
-    "zscore",
-    "raw_suvr",
-    "centiloid"
-  )
-  bind_rows(lapply(
-    measures,
-    function(outcome) {
-      get_adjusted_corr(cohort, outcome, predictor = "mean_ptau217")
-    }
-  ))
-}
-
-get_csf_corrs <- function(cohort) {
-  get_adjusted_corr(
-    cohort,
-    outcome = "CSF_AB_Ratio",
-    predictor = "mean_ptau217"
-  )
 }

@@ -124,18 +124,7 @@ build_path <- function(path_data) {
     "mean_ab42_ab40_ratio"
   )
   # Create a named vector for variable mapping
-  var_mapping <- c(
-    "mean_elisa" = "CD14",
-    "mean_nfl" = "NfL",
-    "mean_ykl" = "YKL-40",
-    "mean_gfap" = "GFAP",
-    "mean_ab40" = "AB40",
-    "mean_ab42" = "AB42",
-    "mean_tdp" = "TDP-43",
-    "mean_ptau181" = "pTau-181",
-    "mean_ptau217" = "pTau-217",
-    "mean_ab42_ab40_ratio" = "AB-Ratio"
-  )
+  var_mapping <- BIOMARKER_NAMES
 
   # Function to get remaining variables at each step
   get_remaining_vars <- function(step, removed_vars) {

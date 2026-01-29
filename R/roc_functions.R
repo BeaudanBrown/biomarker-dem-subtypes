@@ -13,10 +13,7 @@ auroc <- function(data, outcome, reference, nfolds = 10) {
 
   # standardise continuous predictors and outcomes
   contvars <- names(data)[sapply(data, function(col) length(unique(col)) > 5)]
-  std <- function(x) {
-    (x - mean(x, na.rm = T)) / sd(x, na.rm = T)
-  }
-  data <- mutate(data, across(all_of(contvars), std))
+  data <- mutate(data, across(all_of(contvars), standardise))
 
   # CV
   folds <- make_folds(
@@ -87,17 +84,8 @@ get_roc <- function(data, out) {
   valid_X <- data |> select(-Y)
   valid_Y <- data$Y
   preds <- as.numeric(predict(out$fit, newdata = valid_X)$pred)
-  roc_data <- tibble(true_labels = valid_Y, predicted_probs = preds)
-  # Get unique thresholds (predicted probabilities)
-  thresholds <- seq(0, 1, length.out = 100)
 
-  # Calculate TPR and FPR for each threshold
-  roc_data <- data.frame(
-    t(sapply(thresholds, calculate_tpr_fpr, data = roc_data))
-  )
-  colnames(roc_data) <- c("TPR", "FPR")
-
-  roc_data$AUC <- as.numeric(roc(valid_Y, preds)$auc)
+  roc_data <- compute_roc_curve(valid_Y, preds)
 
   return(list(
     labels = valid_Y,
@@ -119,6 +107,27 @@ calculate_tpr_fpr <- function(threshold, data) {
   FPR <- FP / (FP + TN)
 
   return(c(TPR, FPR))
+}
+
+# Compute ROC curve data from predictions
+compute_roc_curve <- function(
+  true_labels,
+  predicted_probs,
+  n_thresholds = 100
+) {
+  roc_data <- tibble(
+    true_labels = true_labels,
+    predicted_probs = predicted_probs
+  )
+  thresholds <- seq(0, 1, length.out = n_thresholds)
+
+  roc_data <- data.frame(
+    t(sapply(thresholds, calculate_tpr_fpr, data = roc_data))
+  )
+  colnames(roc_data) <- c("TPR", "FPR")
+  roc_data$AUC <- as.numeric(roc(true_labels, predicted_probs)$auc)
+
+  roc_data
 }
 
 
