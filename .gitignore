@@ -69,7 +69,13 @@ rsconnect/
 
 /.quarto/
 
-# targets cache
+# Local agent logs, generated reports and analysis exports
+/.pi/
+/output/
+/cog.csv
+
+# targets caches (including alternate local stores)
+/.targets_*/
 _targets/
 
 # targets yaml
