@@ -87,6 +87,7 @@ list(
   c(source("pet_targets.R")$value),
   c(source("csf_targets.R")$value),
   c(source("cog_correlation_targets.R")$value),
+  c(source("tdp_targets.R")$value),
   c(roc_targets),
   c(subset_targets),
   # clean data

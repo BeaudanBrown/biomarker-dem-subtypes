@@ -64,6 +64,9 @@
               quarto
               arm
               cowplot
+              plotly
+              htmlwidgets
+              htmltools
               nnet
               cvAUC
               gbm

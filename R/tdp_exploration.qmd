@@ -1,0 +1,80 @@
+---
+title: "TDP-43 exploratory analyses"
+output-file: tdp43_report.html
+format:
+  html:
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| include: false
+project_root <- normalizePath(if (file.exists("_targets.R")) "." else "..")
+knitr::opts_knit$set(root.dir = project_root)
+```
+
+```{r}
+#| include: false
+# Keep standalone PNG/CSV exports and presentation sources tracked.
+exports <- targets::tar_read(tdp43_exports)
+widget_sources <- targets::tar_read(tdp43_widget_sources)
+for (path in widget_sources[grepl("\\.R$", widget_sources)]) source(path)
+controls_script <- widget_sources[grepl("\\.js$", widget_sources)]
+```
+
+<label for="tdp43-trend-toggle"><input type="checkbox" id="tdp43-trend-toggle"> Show trend lines and 95% confidence bands</label>
+
+<style>
+.tdp43-widget { margin-bottom: 1.5rem; }
+.tdp43-widget fieldset { border: 0; padding: 0; }
+.tdp43-widget legend { font-size: 1rem; }
+.tdp43-widget label { display: inline-block; margin-right: 1rem; }
+.tdp43-widget select { margin-bottom: 0.5rem; }
+</style>
+
+# TDP-43 by diagnostic group
+
+```{r}
+tdp43_box_view(targets::tar_read(tdp43_subtype), controls_script)
+```
+
+# TDP-43 versus age
+
+```{r}
+tdp43_scatter_view(targets::tar_read(tdp43_age), controls_script)
+```
+
+# TDP-43 by sex
+
+```{r}
+tdp43_box_view(targets::tar_read(tdp43_sex), controls_script)
+```
+
+# Plasma biomarker correlations
+
+```{r}
+tdp43_matrix_view(targets::tar_read(tdp43_biomarker_correlations), controls_script)
+```
+
+# TDP-43 by global CDR
+
+```{r}
+tdp43_box_view(targets::tar_read(tdp43_cdr), controls_script)
+```
+
+# TDP-43 versus PET amyloid burden
+
+```{r}
+tdp43_scatter_view(targets::tar_read(tdp43_pet), controls_script)
+```
+
+# TDP-43 versus CSF Aβ42/40
+
+```{r}
+tdp43_scatter_view(targets::tar_read(tdp43_csf), controls_script)
+```
