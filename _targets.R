@@ -96,6 +96,8 @@ list(
   # clean data
   tar_target(df_with_csf, clean_data(joined_with_csf)),
   tar_target(descriptives, show_descriptives(df)),
+  tar_target(cognitive_summary_table, cognitive_summary(df)),
+  tar_target(hispanic_summary_table, hispanic_summary(df)),
   # CSF marker and plasma marker partial rank order correlations
   tar_target(csf_rank_cors, csf_rank_corr(df_with_csf)),
   # Render quarto doc

@@ -21,6 +21,28 @@ library(patchwork)
 ```
 
 :::: {.panel-tabset}
+## CDR and MMSE summaries
+
+```{r}
+knitr::kable(
+  tar_read(cognitive_summary_table),
+  caption = "CDR and MMSE by diagnosis and sex"
+)
+```
+
+Summaries describe the same participant population as Table 1. Each All,
+Males or Females panel reports median (Q1, Q3) among participants with an
+observed score. Available n (%) gives the number with an observed score in
+that diagnostic group and its percentage of all participants with that score
+recorded across the four diagnostic groups in the same panel. CDR and MMSE
+have separate denominators. Percentages sum to approximately 100% across each
+row, allowing for rounding; they describe diagnostic composition, not score
+availability within each diagnostic group. Missing CDR or MMSE does not
+exclude participants from the other summary. Participants with missing sex
+are included in All only. An em dash indicates no available scores or an
+undefined percentage when a panel has no observed scores for that measure.
+No between-group tests are reported.
+
 ## ROC curves: each dementia subtypes vs others
 ::: {.my-table-wrapper style="width:70%; margin:auto;"}
 ```{r}
