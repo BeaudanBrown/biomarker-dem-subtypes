@@ -6,6 +6,6 @@ list(
   ),
   tar_target(
     csf_corr_table,
-    get_marker_table(csf_corrs)
+    get_marker_table(csf_corrs, show_ci = TRUE)
   )
 )

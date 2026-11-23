@@ -36,7 +36,6 @@ standardise_df <- function(df) {
 }
 
 get_adjusted_corr <- function(cohort, outcome, predictor) {
-  format_estimate <- function(x) sprintf("%.3f", round(x, 3))
   cohort_name <- names(cohort)
   df <- cohort[[cohort_name]]
   filtered_df <- df |>
@@ -52,20 +51,31 @@ get_adjusted_corr <- function(cohort, outcome, predictor) {
   summary_model <- summary(model)
   coef_predictor <- coef(summary_model)[predictor, "Estimate"]
   pval_predictor <- coef(summary_model)[predictor, "Pr(>|t|)"]
+  ci <- stats::confint(model, parm = predictor, level = 0.95)
 
   tibble(
     cohort = cohort_name,
     outcome = outcome,
     predictor = predictor,
-    estimate = format_estimate(coef_predictor),
+    estimate = coef_predictor,
+    conf_low = ci[1, 1],
+    conf_high = ci[1, 2],
     p = pval_predictor,
     n = nrow(filtered_df)
   )
 }
 
-get_marker_table <- function(corr_data) {
+get_marker_table <- function(corr_data, show_ci = FALSE) {
+  if (show_ci) {
+    corr_data <- corr_data |>
+      mutate(estimate = sprintf("%.2f [%.2f, %.2f]", estimate, conf_low, conf_high))
+  } else {
+    corr_data <- corr_data |> mutate(estimate = sprintf("%.2f", estimate))
+  }
+
   corr_data <- corr_data |>
     filter(cohort != "All Subtypes") |>
+    mutate(p = if_else(p < 0.001, "<0.001", sprintf("%.3f", p))) |>
     group_by(cohort) |>
     mutate(
       cohort = glue::glue("{cohort} (n={max(n)})")
@@ -94,13 +104,11 @@ get_marker_table <- function(corr_data) {
   df_wide <- df_wide[, col_order] |>
     mutate(predictor = rename_biomarkers(predictor))
 
-  bottom_header <- c("Predictor", rep(c("Beta", "P‐value"), times = nc))
+  beta_header <- if (show_ci) "β (95% CI)" else "Beta"
+  bottom_header <- c("Predictor", rep(c(beta_header, "P‐value"), times = nc))
   top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
 
   df_wide |>
-    mutate(across(-predictor, \(.) as.numeric(.))) |>
-    mutate(across(-predictor, \(.) sprintf("%.2f", .))) |>
-    mutate(across(ends_with("_p"), \(.) ifelse(. < 0.001, "<0.001", .))) |>
     kableExtra::kable(
       format = "html",
       booktabs = TRUE,
