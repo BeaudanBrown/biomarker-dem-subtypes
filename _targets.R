@@ -110,6 +110,11 @@ list(
   c(source("cog_correlation_targets.R")$value),
   c(source("tdp_targets.R")$value),
   c(source("tabpfn_targets.R")$value),
+  if (identical(Sys.getenv("ADDF_SL_WEIGHT_PILOT"), "true")) {
+    source("tabpfn_sl_weights_targets.R")$value
+  } else {
+    list()
+  },
   c(roc_targets),
   c(subset_targets),
   # clean data
