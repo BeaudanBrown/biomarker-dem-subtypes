@@ -43,6 +43,14 @@ roc_defs <- bind_rows(
   )
 )
 
+roc_control_refit <- roc_refit_controls_allowed()
+roc_subtype_refit <- roc_refit_controls_allowed("ADDF_REFIT_SL_SUBTYPES")
+roc_control_comparisons <- c(
+  "AD_vs_Control",
+  "FTD_vs_Control",
+  "LBD_vs_Control"
+)
+
 roc_targets <- list(
   tar_target(roc_data_prepared, prepare_roc_data(df_with_csf)),
   tar_target(
@@ -61,13 +69,43 @@ roc_targets <- list(
   # ===================================================================
   # Primary analysis
   # ===================================================================
+  # Historical controls retain their exact names and cached values. Missing or
+  # errored metadata fails closed rather than silently refitting a baseline.
   tar_map(
-    values = roc_defs,
+    values = dplyr::filter(roc_defs, comparison %in% roc_control_comparisons),
     names = comparison,
     tar_target(
       roc_result,
-      auroc(roc_data_prepared, target_diagnosis, comparators)
-    ),
+      {
+        roc_guard_historical_controls(roc_control_refit)
+        auroc(roc_data_prepared, target_diagnosis, comparators)
+      },
+      cue = tar_cue(mode = if (roc_control_refit) "thorough" else "never"),
+      packages = if (roc_control_refit) tar_option_get("packages") else
+        character()
+    )
+  ),
+  # Freeze the historical differential-diagnosis baselines used in the PDF.
+  tar_map(
+    values = dplyr::filter(roc_defs, !comparison %in% roc_control_comparisons),
+    names = comparison,
+    tar_target(
+      roc_result,
+      {
+        roc_guard_historical_controls(
+          roc_subtype_refit,
+          "ADDF_REFIT_SL_SUBTYPES"
+        )
+        auroc(roc_data_prepared, target_diagnosis, comparators)
+      },
+      cue = tar_cue(mode = if (roc_subtype_refit) "thorough" else "never"),
+      packages = if (roc_subtype_refit) tar_option_get("packages") else
+        character()
+    )
+  ),
+  tar_map(
+    values = roc_defs,
+    names = comparison,
     tar_target(
       roc_plot,
       plot_roc(roc_result, title)

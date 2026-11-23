@@ -11,12 +11,31 @@ cache_dir <- Sys.getenv("CACHE_DIR")
 # set target configs
 tar_config_set(store = cache_dir)
 
-# Set up global crew controller
-unlink("./logs/*", recursive = FALSE)
+# All TabPFN fits share one device; extra workers are an explicit opt-in.
+gpu_worker_setting <- Sys.getenv("ADDF_TABPFN_GPU_WORKERS", "1")
+gpu_workers <- suppressWarnings(as.integer(gpu_worker_setting))
+if (
+  is.na(gpu_workers) ||
+    gpu_workers < 1L ||
+    as.character(gpu_workers) != gpu_worker_setting
+) {
+  stop("ADDF_TABPFN_GPU_WORKERS must be a positive integer.", call. = FALSE)
+}
+
+# Set up crew controllers. Keep logs for progress/failure diagnosis.
 crew_controller_global <- crew_controller_local(
+  name = "cpu",
   options_local = crew_options_local(log_directory = "./logs"),
-  workers = future::availableCores() - 2,
-  tar_option_set(error = "continue")
+  workers = max(1L, future::availableCores() - 2L)
+)
+crew_controller_gpu <- crew_controller_local(
+  name = "gpu",
+  options_local = crew_options_local(log_directory = "./logs"),
+  workers = gpu_workers
+)
+crew_controllers <- crew_controller_group(
+  cpu = crew_controller_global,
+  gpu = crew_controller_gpu
 )
 
 # Set target options:
@@ -65,7 +84,9 @@ tar_option_set(
     "crew"
   ),
   format = "qs",
-  controller = crew_controller_global
+  controller = crew_controllers,
+  resources = tar_resources(crew = tar_resources_crew(controller = "cpu")),
+  error = "continue"
 )
 
 # Run the R scripts in the R/ folder
@@ -88,6 +109,7 @@ list(
   c(source("csf_targets.R")$value),
   c(source("cog_correlation_targets.R")$value),
   c(source("tdp_targets.R")$value),
+  c(source("tabpfn_targets.R")$value),
   c(roc_targets),
   c(subset_targets),
   # clean data
