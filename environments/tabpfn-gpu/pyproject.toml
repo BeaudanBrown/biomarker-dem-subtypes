@@ -1,0 +1,41 @@
+# Locked opt-in gfx1030 runtime; see docs/tabpfn-gpu.md for verified scope.
+[project]
+name = "tabpfn-gfx1030-environment"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "tabpfn==9.1.0",
+  "torch[device-gfx1030]==2.13.0+rocm10.0.0",
+  "rocm[libraries,device-gfx1030]==10.0.0",
+  "rocm-bootstrap==0.3.0",
+  # Explicit direct requirements make uv source routing apply to each AMD package.
+  "rocm-sdk-core==10.0.0",
+  "rocm-sdk-libraries==10.0.0",
+  "rocm-sdk-device-gfx1030==10.0.0",
+  "amd-torch-device-gfx1030==2.13.0+rocm10.0.0",
+  "triton==3.8.0+git4cff872c.rocm10.0.0",
+]
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
+
+[[tool.uv.index]]
+name = "amd-rocm"
+url = "https://stable.repo.amd.com/rocm/whl-next/"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "amd-rocm" }
+triton = { index = "amd-rocm" }
+rocm = { index = "amd-rocm" }
+rocm-bootstrap = { index = "amd-rocm" }
+rocm-sdk-core = { index = "amd-rocm" }
+rocm-sdk-libraries = { index = "amd-rocm" }
+rocm-sdk-device-gfx1030 = { index = "amd-rocm" }
+amd-torch-device-gfx1030 = { index = "amd-rocm" }
+
+# The ROCm sdist otherwise derives metadata from the build machine's hardware.
+# uv2nix propagates this build variable into the Nix derivation automatically.
+[tool.uv.extra-build-variables]
+rocm = { ROCM_SDK_TARGET_FAMILY = "gfx1030" }
