@@ -31,6 +31,9 @@ Quick start (base R)
 - R ≥ 4.3 with packages: `targets`, `tarchetypes`, `crew`, `tidyverse`, `data.table`, `readxl`, `dotenv`, `SuperLearner`, `origami`, `cvAUC`, `pROC`, `glmnet`, `ranger`, `xgboost`, `earth`, `gam`, `arm`, `rms`, `bayesplot`, `patchwork`, `gtsummary`, `kableExtra`, `visNetwork`, `qs`, `tarchetypes`, `quarto`.
 - Set the same environment variables as in `env-sample`, then run `targets::tar_make()`.
 
+Exploratory TabPFN comparison
+- [Setup and user-run instructions](TABPFN_EXPLORATION.md): seven diagnostic comparisons, cached SuperLearner baselines, PNG/CSV exports without Quarto rendering. Run `targets::tar_make(names = tabpfn_comparison_pngs)` for all three comparison PNGs; crew routing is available when the controller is enabled.
+
 Outputs
 - Figures: ROC and subset-path PNGs in `plots/`.
 - Report: `R/plots_and_corrs.html` (rendered by the `tar_quarto` target).

@@ -68,6 +68,8 @@ rsconnect/
 .direnv
 
 /.quarto/
+# Retained local artifacts from the superseded TabPFN Quarto report
+/R/tabpfn_results_files/
 
 # Local agent logs, generated reports and analysis exports
 /.pi/
