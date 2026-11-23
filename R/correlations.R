@@ -65,7 +65,7 @@ get_adjusted_corr <- function(cohort, outcome, predictor) {
   )
 }
 
-get_marker_table <- function(corr_data, show_ci = FALSE) {
+get_marker_table_data <- function(corr_data, show_ci = FALSE) {
   if (show_ci) {
     corr_data <- corr_data |>
       mutate(estimate = sprintf("%.2f [%.2f, %.2f]", estimate, conf_low, conf_high))
@@ -85,7 +85,6 @@ get_marker_table <- function(corr_data, show_ci = FALSE) {
   cohorts <- corr_data |>
     dplyr::distinct(cohort) |>
     dplyr::pull(cohort)
-  nc <- length(cohorts)
 
   df_wide <- corr_data |>
     tidyr::pivot_wider(
@@ -104,11 +103,18 @@ get_marker_table <- function(corr_data, show_ci = FALSE) {
   df_wide <- df_wide[, col_order] |>
     mutate(predictor = rename_biomarkers(predictor))
 
+  list(data = df_wide, cohorts = cohorts)
+}
+
+get_marker_table <- function(corr_data, show_ci = FALSE) {
+  table <- get_marker_table_data(corr_data, show_ci = show_ci)
+  cohorts <- table$cohorts
+  nc <- length(cohorts)
   beta_header <- if (show_ci) "β (95% CI)" else "Beta"
   bottom_header <- c("Predictor", rep(c(beta_header, "P‐value"), times = nc))
   top_header <- c(" " = 1, setNames(rep(2, nc), cohorts))
 
-  df_wide |>
+  table$data |>
     kableExtra::kable(
       format = "html",
       booktabs = TRUE,
@@ -116,6 +122,17 @@ get_marker_table <- function(corr_data, show_ci = FALSE) {
     ) |>
     kableExtra::add_header_above(top_header) |>
     kableExtra::kable_styling(latex_options = "striped", full_width = FALSE)
+}
+
+write_marker_table_csv <- function(corr_data, path) {
+  table <- get_marker_table_data(corr_data, show_ci = TRUE)$data
+  names(table) <- names(table) |>
+    sub(pattern = "_estimate$", replacement = " - β (95% CI)") |>
+    sub(pattern = "_p$", replacement = " - P-value")
+  names(table)[1] <- "Predictor"
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  readr::write_csv(table, path, na = "")
+  path
 }
 
 get_marker_corrs <- function(cohort, outcome) {

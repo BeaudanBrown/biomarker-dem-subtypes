@@ -38,3 +38,17 @@ Outputs
 - Figures: ROC and subset-path PNGs in `plots/`.
 - Report: `R/plots_and_corrs.html` (rendered by the `tar_quarto` target).
 - Cache: targets store at `CACHE_DIR`.
+
+### Supplementary table CSVs
+
+To export the amyloid PET centiloid and CSF Aβ42/40 tables without rendering
+the Quarto report, run from the project root in R:
+
+```r
+targets::tar_make(names = c(pet_centiloid_corr_table_csv, csf_corr_table_csv))
+```
+
+The files are `output/supplementary/pet_centiloid_table.csv` and
+`output/supplementary/csf_ab42_ab40_table.csv`. They use the HTML tables’
+displayed values, with one header row and a pair of columns (β with 95% CI
+and p-value) per cohort.
